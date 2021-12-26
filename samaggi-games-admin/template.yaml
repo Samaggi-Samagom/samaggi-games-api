@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  samaggi-games-admin
+
+  Sample SAM Template for samaggi-games-admin
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        HelloWorld:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+
+  AddPlayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.add_player
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Event:
+        AddPlayer:
+          Type: Api
+          Properties:
+            Path: /add-player
+            Method: get
+          Auth:
+            ApiKeyRequired: true
+
+  DeletePlayer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.delete_player
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Event:
+        DeletePlayer:
+          Type: Api
+          Properties:
+            Path: /delete-player
+            Method: get
+          Auth:
+            ApiKeyRequired: true
+
+  GetTable:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.get_table
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Event:
+        GetTable:
+          Type: Api
+          Properties:
+            Path: /get-table
+            Method: get
+          Auth:
+            ApiKeyRequired: true
+
+Outputs:
+  HelloWorldApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn
