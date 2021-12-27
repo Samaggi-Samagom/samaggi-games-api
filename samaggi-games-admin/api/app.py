@@ -231,5 +231,72 @@ def delete_player(event, _):
     }
 
 
-def get_table(event, context):
-    pass
+def get_table(event, _):
+    try:
+        table_name = event["queryStringParameters"]["table_name"]
+    except KeyError as e:
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Unable to get table_name from request parameters. Parameter not provided.",
+                "error": str(e)
+            })
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to get table_name from request parameter due to unexpected error.",
+                "error": str(e)
+            })
+        }
+
+    try:
+        dynamodb = boto3.resource("dynamodb")
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "There was an error initialising dynamoDB resource in Boto3.",
+                "error": str(e)
+            })
+        }
+
+    try:
+        table_ref = dynamodb.Table(table_name)
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to initialise the table.",
+                "error": str(e)
+            })
+        }
+
+    try:
+        response = table_ref.scan()
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to scan table.",
+                "error": str(e)
+            })
+        }
+
+    if "Items" not in response:
+        return {
+            "statusCode": 404,
+            "body": json.dumps({
+                "message": "The table does not contain any data or the table does not exist.",
+                "error": "No data."
+            })
+        }
+    else:
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Success",
+                "data": response["Items"]
+            })
+        }

@@ -25,6 +25,8 @@ Resources:
           Properties:
             Path: /hello
             Method: get
+            Auth:
+              ApiKeyRequired: true
 
   AddPlayer:
     Type: AWS::Serverless::Function
@@ -34,14 +36,17 @@ Resources:
       Runtime: python3.8
       Architectures:
         - x86_64
-      Event:
+      Events:
         AddPlayer:
           Type: Api
           Properties:
             Path: /add-player
             Method: get
-          Auth:
-            ApiKeyRequired: true
+            Auth:
+              ApiKeyRequired: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
 
   DeletePlayer:
     Type: AWS::Serverless::Function
@@ -51,14 +56,17 @@ Resources:
       Runtime: python3.8
       Architectures:
         - x86_64
-      Event:
+      Events:
         DeletePlayer:
           Type: Api
           Properties:
             Path: /delete-player
             Method: get
-          Auth:
-            ApiKeyRequired: true
+            Auth:
+              ApiKeyRequired: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
 
   GetTable:
     Type: AWS::Serverless::Function
@@ -68,14 +76,37 @@ Resources:
       Runtime: python3.8
       Architectures:
         - x86_64
-      Event:
+      Events:
         GetTable:
           Type: Api
           Properties:
             Path: /get-table
             Method: get
-          Auth:
-            ApiKeyRequired: true
+            Auth:
+              ApiKeyRequired: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  GetPlayerID:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.get_player_id
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        GetPlayerID:
+          Type: Api
+          Properties:
+            Path: /get-player-id
+            Method: get
+            Auth:
+              ApiKeyRequired: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
 
 Outputs:
   HelloWorldApi:
@@ -87,3 +118,40 @@ Outputs:
   HelloWorldFunctionIamRole:
     Description: "Implicit IAM Role created for Hello World function"
     Value: !GetAtt HelloWorldFunctionRole.Arn
+  AddPlayerGateway:
+    Description: "API Gateway for AddPlayer"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/add-player/"
+  AddPlayerFunction:
+    Description: "ARN for AddPlayer"
+    Value: !GetAtt AddPlayer.Arn
+  AddPlayerIam:
+    Description: "The IAM Role for AddPlayer"
+    Value: !GetAtt AddPlayer.Arn
+  DeletePlayerGateway:
+    Description: "API Gateway for DeletePlayer"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/delete-player/"
+  DeletePlayerFunction:
+    Description: "ARN for DeletePlayer"
+    Value: !GetAtt DeletePlayer.Arn
+  DeletePlayerIam:
+    Description: "The IAM Role for DeletePlayer"
+    Value: !GetAtt DeletePlayer.Arn
+  GetTableGateway:
+    Description: "API Gateway for GetTable"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get-table/"
+  GetTableFunction:
+    Description: "ARN for GetTable"
+    Value: !GetAtt GetTable.Arn
+  GetTableIam:
+    Description: "The IAM Role for GetTable"
+    Value: !GetAtt GetTable.Arn
+  GetPlayerIDGateway:
+    Description: "API Gateway for GetPlayerID"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/get-player-id/"
+  GetPlayerIDFunction:
+    Description: "ARN for GetPlayerID"
+    Value: !GetAtt GetPlayerID.Arn
+  GetPlayerIDIam:
+    Description: "The IAM Role for GetPlayerID"
+    Value: !GetAtt GetPlayerID.Arn
+
