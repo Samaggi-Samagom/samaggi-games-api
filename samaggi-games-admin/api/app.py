@@ -24,9 +24,9 @@ def delete_player(event, _):
         return {
             "statusCode": 400,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an issue getting the player_id for this request.",
@@ -37,9 +37,9 @@ def delete_player(event, _):
         return {
             "statusCode": 400,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Player_id type invalid or data incomplete.",
@@ -50,9 +50,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an unexpected error while reading player_id for request.",
@@ -67,9 +67,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
@@ -83,9 +83,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to create reference to data.",
@@ -98,9 +98,9 @@ def delete_player(event, _):
         return {
             "statusCode": 404,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "The player with that player ID was not found.",
@@ -121,9 +121,9 @@ def delete_player(event, _):
             return {
                 "statusCode": 500,
                 'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                     'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    'Access-Control-Allow-Methods': '*'
                 },
                 "body": json.dumps({
                     "message": "Player table data invalid or malformed. Some field(s) missing.",
@@ -135,9 +135,9 @@ def delete_player(event, _):
             return {
                 "statusCode": 500,
                 'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                     'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    'Access-Control-Allow-Methods': '*'
                 },
                 "body": json.dumps({
                     "message": "There was an error extracting data about the player.",
@@ -152,9 +152,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was a problem while deleting item.",
@@ -170,9 +170,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was a problem while querying item with the same sport and (player) university.",
@@ -193,9 +193,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an error parsing similar player data.",
@@ -209,9 +209,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an error initialising the teams table.",
@@ -228,9 +228,9 @@ def delete_player(event, _):
             return {
                 "statusCode": 500,
                 'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                     'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    'Access-Control-Allow-Methods': '*'
                 },
                 "body": json.dumps({
                     "message": "There was an error while querying for sport in the teams table.",
@@ -250,9 +250,9 @@ def delete_player(event, _):
                         return {
                             "statusCode": 500,
                             'headers': {
-                                'Access-Control-Allow-Headers': 'Content-Type',
+                                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                                 'Access-Control-Allow-Origin': '*',
-                                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                                'Access-Control-Allow-Methods': '*'
                             },
                             "body": json.dumps({
                                 "message": "There's more than one matching team.",
@@ -264,9 +264,9 @@ def delete_player(event, _):
             return {
                 "statusCode": 404,
                 'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                     'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                    'Access-Control-Allow-Methods': '*'
                 },
                 "body": json.dumps({
                     "message": "Unable to find the team item to delete.",
@@ -278,9 +278,9 @@ def delete_player(event, _):
         return {
             "statusCode": 200,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Player successfully deleted.",
@@ -295,9 +295,9 @@ def delete_player(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to delete team.",
@@ -309,9 +309,9 @@ def delete_player(event, _):
     return {
         "statusCode": 200,
         'headers': {
-            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Headers': 'Content-Type,authorisation',
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            'Access-Control-Allow-Methods': '*'
         },
         "body": json.dumps({
             "message": "Player successfully deleted.",
@@ -328,9 +328,9 @@ def get_table(event, _):
         return {
             "statusCode": 400,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameters. Parameter not provided.",
@@ -341,9 +341,9 @@ def get_table(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameter due to unexpected error.",
@@ -357,9 +357,9 @@ def get_table(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
@@ -373,9 +373,9 @@ def get_table(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to initialise the table.",
@@ -389,9 +389,9 @@ def get_table(event, _):
         return {
             "statusCode": 500,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Unable to scan table.",
@@ -403,9 +403,9 @@ def get_table(event, _):
         return {
             "statusCode": 404,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "The table does not contain any data or the table does not exist.",
@@ -416,9 +416,9 @@ def get_table(event, _):
         return {
             "statusCode": 200,
             'headers': {
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                'Access-Control-Allow-Methods': '*'
             },
             "body": json.dumps({
                 "message": "Success",
