@@ -44,6 +44,10 @@ Resources:
             Method: get
             Auth:
               ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+              Authorizers:
+                SSGamesAPIAuthorizer:
+                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -64,6 +68,10 @@ Resources:
             Method: get
             Auth:
               ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+              Authorizers:
+                SSGamesAPIAuthorizer:
+                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -83,7 +91,10 @@ Resources:
             Path: /get-table
             Method: get
             Auth:
-              ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+              Authorizers:
+                SSGamesAPIAuthorizer:
+                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -104,9 +115,34 @@ Resources:
             Method: get
             Auth:
               ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+              Authorizers:
+                SSGamesAPIAuthorizer:
+                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
+
+  SSGamesAPIUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: SSGamesAPIUserPool
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+      UsernameAttributes:
+        - email
+      Schema:
+        - AttributeDataType: String
+          Name: email
+          Required: false
+
+  SSGamesAPIUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref SSGamesAPIUserPool
+      ClientName: SSGamesAPI
+      GenerateSecret: false
 
 Outputs:
   HelloWorldApi:
