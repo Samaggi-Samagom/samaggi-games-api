@@ -23,6 +23,11 @@ def delete_player(event, _):
     except KeyError as e:
         return {
             "statusCode": 400,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an issue getting the player_id for this request.",
                 "error": str(e)
@@ -31,6 +36,11 @@ def delete_player(event, _):
     except ValueError as e:
         return {
             "statusCode": 400,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Player_id type invalid or data incomplete.",
                 "error": str(e)
@@ -39,6 +49,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an unexpected error while reading player_id for request.",
                 "error": str(e)
@@ -51,6 +66,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
                 "error": str(e)
@@ -62,6 +82,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to create reference to data.",
                 "error": str(e)
@@ -72,6 +97,11 @@ def delete_player(event, _):
     if "Item" not in response:
         return {
             "statusCode": 404,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "The player with that player ID was not found.",
                 "error": "Player not found. (Item not in response)",
@@ -90,6 +120,11 @@ def delete_player(event, _):
         except KeyError as e:
             return {
                 "statusCode": 500,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
                 "body": json.dumps({
                     "message": "Player table data invalid or malformed. Some field(s) missing.",
                     "error": str(e),
@@ -99,6 +134,11 @@ def delete_player(event, _):
         except Exception as e:
             return {
                 "statusCode": 500,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
                 "body": json.dumps({
                     "message": "There was an error extracting data about the player.",
                     "error": str(e)
@@ -111,6 +151,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was a problem while deleting item.",
                 "error": str(e)
@@ -124,6 +169,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was a problem while querying item with the same sport and (player) university.",
                 "error": str(e)
@@ -142,6 +192,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an error parsing similar player data.",
                 "error": str(e)
@@ -153,6 +208,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an error initialising the teams table.",
                 "error": str(e)
@@ -167,6 +227,11 @@ def delete_player(event, _):
         except Exception as e:
             return {
                 "statusCode": 500,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
                 "body": json.dumps({
                     "message": "There was an error while querying for sport in the teams table.",
                     "error": str(e)
@@ -184,6 +249,11 @@ def delete_player(event, _):
                     else:
                         return {
                             "statusCode": 500,
+                            'headers': {
+                                'Access-Control-Allow-Headers': 'Content-Type',
+                                'Access-Control-Allow-Origin': '*',
+                                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                            },
                             "body": json.dumps({
                                 "message": "There's more than one matching team.",
                                 "error": "There's more than one team for the same sport and university. This conflict "
@@ -193,6 +263,11 @@ def delete_player(event, _):
         else:
             return {
                 "statusCode": 404,
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                },
                 "body": json.dumps({
                     "message": "Unable to find the team item to delete.",
                     "error": "Query for sport returned 0 item.",
@@ -202,6 +277,11 @@ def delete_player(event, _):
     else:
         return {
             "statusCode": 200,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Player successfully deleted.",
                 "detail": "No team was deleted as another player with the same sport and university exists."
@@ -214,6 +294,11 @@ def delete_player(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to delete team.",
                 "error": str(e),
@@ -223,6 +308,11 @@ def delete_player(event, _):
 
     return {
         "statusCode": 200,
+        'headers': {
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        },
         "body": json.dumps({
             "message": "Player successfully deleted.",
             "detail": "There was no other player from the same university playing the same sport. The team has "
@@ -237,6 +327,11 @@ def get_table(event, _):
     except KeyError as e:
         return {
             "statusCode": 400,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameters. Parameter not provided.",
                 "error": str(e)
@@ -245,6 +340,11 @@ def get_table(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameter due to unexpected error.",
                 "error": str(e)
@@ -256,6 +356,11 @@ def get_table(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
                 "error": str(e)
@@ -267,6 +372,11 @@ def get_table(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to initialise the table.",
                 "error": str(e)
@@ -278,6 +388,11 @@ def get_table(event, _):
     except Exception as e:
         return {
             "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Unable to scan table.",
                 "error": str(e)
@@ -287,6 +402,11 @@ def get_table(event, _):
     if "Items" not in response:
         return {
             "statusCode": 404,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "The table does not contain any data or the table does not exist.",
                 "error": "No data."
@@ -295,6 +415,11 @@ def get_table(event, _):
     else:
         return {
             "statusCode": 200,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
             "body": json.dumps({
                 "message": "Success",
                 "data": response["Items"]
