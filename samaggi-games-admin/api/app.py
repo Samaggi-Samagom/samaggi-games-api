@@ -2,6 +2,7 @@ import json
 import boto3
 from typing import Dict, Any, List
 from boto3.dynamodb.conditions import Key
+from decimal import Decimal
 
 
 def add_player(event, context):
@@ -239,6 +240,7 @@ def delete_player(event, _):
             }
 
         teams_uuid = None
+        subtract_team_num = False
 
         if "Items" in university_sport_query and len(university_sport_query["Items"]) > 0:
             sport_items: List[Dict[str, Any]] = university_sport_query["Items"]
@@ -246,6 +248,8 @@ def delete_player(event, _):
                 if item["uni"] == player_uni:
                     if teams_uuid is None:
                         teams_uuid = item["team_uuid"]
+                        if item["uni"] == item["main_uni"]:
+                            subtract_team_num = True
                     else:
                         return {
                             "statusCode": 500,
@@ -306,6 +310,62 @@ def delete_player(event, _):
             })
         }
 
+    if subtract_team_num:
+        return {
+            "statusCode": 200,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': '*'
+            },
+            "body": json.dumps({
+                "message": "Player successfully deleted.",
+                "detail": "There was no other player from the same university playing the same sport. The team has "
+                          "therefore been deleted. Team number not reduced."
+            })
+        }
+
+    try:
+        sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': '*'
+            },
+            "body": json.dumps({
+                "message": "Unable to create reference to SamaggiGamesSportCount.",
+                "error": str(e)
+            })
+        }
+
+    try:
+        sport_count_table.update_item(
+            Key={
+                "sport_name": sport
+            },
+            UpdateExpression="set team_count= team_count - :v",
+            ExpressionAttributeValues={
+                ":v": Decimal(1)
+            },
+            ReturnValues="UPDATED_NEW"
+        )
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            'headers': {
+                'Access-Control-Allow-Headers': 'Content-Type,authorisation',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': '*'
+            },
+            "body": json.dumps({
+                "message": "Unable to update sport count.",
+                "error": str(e)
+            })
+        }
+
     return {
         "statusCode": 200,
         'headers': {
@@ -316,7 +376,7 @@ def delete_player(event, _):
         "body": json.dumps({
             "message": "Player successfully deleted.",
             "detail": "There was no other player from the same university playing the same sport. The team has "
-                      "therefore been deleted."
+                      "therefore been deleted. Team number reduced."
         })
     }
 
