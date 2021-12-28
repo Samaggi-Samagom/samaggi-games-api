@@ -14,7 +14,7 @@ def cors(data: Dict[str, Any]):
     return data
 
 
-def team_exists(event, context):
+def team_exists(event, _):
     try:
         university = event["queryStringParameters"]["university"]
         sport = event["queryStringParameters"]["sport"]
@@ -29,14 +29,56 @@ def team_exists(event, context):
 
     try:
         dynamodb = boto3.resource("dynamodb")
+        teams_table = dynamodb.Table("SamaggiGamesTeams")
     except Exception as e:
         return cors({
             "statusCode": 500,
             "body": json.dumps({
-                "message": "There was an error initialising dynamoDB resource in Boto3.",
+                "message": "There was an error initialising dynamoDB resource or creating reference to table.",
                 "error": str(e)
             })
         })
+
+    try:
+        uni_query_response = teams_table.query(IndexName="uni", KeyConditionExpression=Key('uni').eq(university))
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to get list of teams using university.",
+                "error": str(e),
+                "data": {
+                    "university": university
+                }
+            })
+        })
+
+    if "Items" not in uni_query_response:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "The team does not exist.",
+                "exists": False
+            })
+        })
+    else:
+        data = uni_query_response["Items"]
+        if any([x["sport"] == sport for x in data]):
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "The team exists.",
+                    "exists": True
+                })
+            })
+        else:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "The team does not exist.",
+                    "exists": False
+                })
+            })
 
 
 def add_player(event, context):
@@ -108,7 +150,6 @@ def delete_player(event, _):
     if "Item" not in response:
         return cors({
             "statusCode": 404,
-
             "body": json.dumps({
                 "message": "The player with that player ID was not found.",
                 "error": "Player not found. (Item not in response)",
@@ -127,11 +168,6 @@ def delete_player(event, _):
         except KeyError as e:
             return cors({
                 "statusCode": 500,
-                'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': '*'
-                },
                 "body": json.dumps({
                     "message": "Player table data invalid or malformed. Some field(s) missing.",
                     "error": str(e),
@@ -141,11 +177,6 @@ def delete_player(event, _):
         except Exception as e:
             return cors({
                 "statusCode": 500,
-                'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': '*'
-                },
                 "body": json.dumps({
                     "message": "There was an error extracting data about the player.",
                     "error": str(e)
@@ -158,7 +189,6 @@ def delete_player(event, _):
     except Exception as e:
         return cors({
             "statusCode": 500,
-
             "body": json.dumps({
                 "message": "There was a problem while deleting item.",
                 "error": str(e)
@@ -172,7 +202,6 @@ def delete_player(event, _):
     except Exception as e:
         return cors({
             "statusCode": 500,
-
             "body": json.dumps({
                 "message": "There was a problem while querying item with the same sport and (player) university.",
                 "error": str(e)
@@ -191,7 +220,6 @@ def delete_player(event, _):
     except Exception as e:
         return cors({
             "statusCode": 500,
-
             "body": json.dumps({
                 "message": "There was an error parsing similar player data.",
                 "error": str(e)
@@ -203,7 +231,6 @@ def delete_player(event, _):
     except Exception as e:
         return cors({
             "statusCode": 500,
-
             "body": json.dumps({
                 "message": "There was an error initialising the teams table.",
                 "error": str(e)
@@ -218,11 +245,6 @@ def delete_player(event, _):
         except Exception as e:
             return cors({
                 "statusCode": 500,
-                'headers': {
-                    'Access-Control-Allow-Headers': 'Content-Type,authorisation',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': '*'
-                },
                 "body": json.dumps({
                     "message": "There was an error while querying for sport in the teams table.",
                     "error": str(e)
