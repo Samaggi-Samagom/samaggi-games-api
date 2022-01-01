@@ -17,29 +17,33 @@ class DecimalEncoder(json.JSONEncoder):
 
 class DynamoDBQueryResponse(list):
 
-    def __init__(self, list_data):
-        super().__init__(list_data["Items"])
+    def __init__(self, dictionary):
+        if "Items" not in dictionary:
+            self.is_empty = True
+            super().__init__([])
+        else:
+            self.is_empty = False
+            super().__init__(dictionary["Items"])
 
-    def query(self, query_parameters: Dict[str: Any]) -> List[Dict[str: Any]]:
+    def query(self, query_parameters: Dict[str, Any]) -> List[Dict[str, Any]]:
         query_result = []
         for result in self:
             if all(result[key] == value for key, value in query_parameters.items()):
                 query_result.append(result)
         return query_result
 
-    def item_exists_where(self, conditions: Dict[str: Any]) -> bool:
+    def item_exists_where(self, conditions: Dict[str, Any]) -> bool:
         for result in self:
             if all(result[key] == value for key, value in conditions.items()):
                 return True
         return False
 
-    def first_item_where(self, conditions: Dict[str: Any], raise_if_not_found: bool = True) -> Dict[str: Any]:
+    def first_item_where(self, conditions: Dict[str, Any], raise_if_not_found: bool = True) -> Dict[str, Any]:
         for result in self:
             if all(result[key] == value for key, value in conditions.items()):
                 return result
         if raise_if_not_found:
             raise ValueError("No item matches conditions")
-        return
 
 
 def cors(data: Dict[str, Any]):
@@ -118,7 +122,9 @@ def team_exists(event, _):
             })
 
 
-def add_player(event, context):
+def add_player(event, _):
+    details = {}
+
     try:
         university = event["queryStringParameters"]["university"]
         sport = event["queryStringParameters"]["sport"]
@@ -164,11 +170,12 @@ def add_player(event, context):
             })
         })
 
-    if "Items" not in uni_query_response or (not uni_query_response.item_exists_where({"sport": sport})):
+    if uni_query_response.is_empty or (not uni_query_response.item_exists_where({"sport": sport})):
+        details["willCreateTeam"] = True
         try:
             team_captain = event["queryStringParameters"]["captainName"]
             captain_contact = event["queryStringParameters"]["captainContact"]
-            team_id = uuid.uuid4()
+            team_id = str(uuid.uuid4())
         except Exception as e:
             return cors({
                 "statusCode": 400,
@@ -176,7 +183,11 @@ def add_player(event, context):
                     "message": "Missing captain details for creating player with a new team.",
                     "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
                     "data": {
-                        "queryStringParameters": event["queryStringParameters"]
+                        "queryStringParameters": event["queryStringParameters"],
+                        "items": uni_query_response,
+                        "sport": sport,
+                        "debug_1": uni_query_response.is_empty,
+                        "debug_2": not uni_query_response.item_exists_where({"sport": sport})
                     }
                 })
             })
@@ -200,8 +211,11 @@ def add_player(event, context):
                     "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                 })
             })
+        else:
+            details["didCreateTeam"] = True
 
         if main_university == university:
+            details["willUpdateTeamCount"] = True
             try:
                 sport_count_table.update_item(
                     Key={
@@ -221,6 +235,8 @@ def add_player(event, context):
                         "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                     })
                 })
+            else:
+                details["didUpdateTeamCount"] = True
 
     try:
         player_table.put_item(
@@ -240,6 +256,14 @@ def add_player(event, context):
                 "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success",
+            "details": details
+        })
+    })
 
 
 def get_player_id(event, context):
@@ -292,7 +316,7 @@ def delete_player(event, _):
         })
 
     try:
-        response: Dict[str, Any] = player_table.get_item(Key={"player_uuid", player_id})
+        response: Dict[str, Any] = player_table.get_item(Key={"player_uuid": player_id})
     except Exception as e:
         return cors({
             "statusCode": 500,
@@ -577,5 +601,5 @@ def get_table(event, _):
             "body": json.dumps({
                 "message": "Success",
                 "data": response["Items"]
-            })
+            }, cls=DecimalEncoder)
         })
