@@ -173,8 +173,8 @@ def add_player(event, _):
     if uni_query_response.is_empty or (not uni_query_response.item_exists_where({"sport": sport})):
         details["willCreateTeam"] = True
         try:
-            team_captain = event["queryStringParameters"]["captainName"]
-            captain_contact = event["queryStringParameters"]["captainContact"]
+            team_captain = event["queryStringParameters"]["captain_name"]
+            captain_contact = event["queryStringParameters"]["captain_contact"]
             team_id = str(uuid.uuid4())
         except Exception as e:
             return cors({
@@ -268,7 +268,7 @@ def add_player(event, _):
 
 def delete_player(event, _):
     try:
-        player_id: str = event["queryStringParameters"]["player_id"]
+        player_id: str = event["queryStringParameters"]["player_uuid"]
 
         if len(player_id) != 36:
             raise ValueError("Invalid player_id length. Expects 36, got " + str(len(player_id)))
