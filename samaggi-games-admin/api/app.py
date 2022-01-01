@@ -1,4 +1,6 @@
 import json
+import uuid
+
 import boto3
 from typing import Dict, Any, List
 from boto3.dynamodb.conditions import Key
@@ -23,7 +25,7 @@ def team_exists(event, _):
             "statusCode": 400,
             "body": json.dumps({
                 "message": "There was an issue getting required parameters.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -35,7 +37,7 @@ def team_exists(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource or creating reference to table.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -46,7 +48,7 @@ def team_exists(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to get list of teams using university.",
-                "error": str(e),
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
                 "data": {
                     "university": university
                 }
@@ -81,8 +83,7 @@ def team_exists(event, _):
             })
 
 
-def add_player(event, context):
-    pass
+
 
 
 def get_player_id(event, context):
@@ -102,7 +103,7 @@ def delete_player(event, _):
             "statusCode": 400,
             "body": json.dumps({
                 "message": "There was an issue getting the player_id for this request.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
     except ValueError as e:
@@ -110,7 +111,7 @@ def delete_player(event, _):
             "statusCode": 400,
             "body": json.dumps({
                 "message": "Player_id type invalid or data incomplete.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
     except Exception as e:
@@ -118,7 +119,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an unexpected error while reading player_id for request.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -130,7 +131,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -142,7 +143,7 @@ def delete_player(event, _):
 
             "body": json.dumps({
                 "message": "Unable to create reference to data.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -170,7 +171,7 @@ def delete_player(event, _):
                 "statusCode": 500,
                 "body": json.dumps({
                     "message": "Player table data invalid or malformed. Some field(s) missing.",
-                    "error": str(e),
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
                     "data": {"player_id": player_id}
                 })
             })
@@ -179,7 +180,7 @@ def delete_player(event, _):
                 "statusCode": 500,
                 "body": json.dumps({
                     "message": "There was an error extracting data about the player.",
-                    "error": str(e)
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                 })
             })
 
@@ -191,7 +192,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was a problem while deleting item.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -204,7 +205,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was a problem while querying item with the same sport and (player) university.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -222,7 +223,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an error parsing similar player data.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -233,7 +234,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an error initialising the teams table.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -247,7 +248,7 @@ def delete_player(event, _):
                 "statusCode": 500,
                 "body": json.dumps({
                     "message": "There was an error while querying for sport in the teams table.",
-                    "error": str(e)
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                 })
             })
 
@@ -297,7 +298,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to delete team.",
-                "error": str(e),
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
                 "data": {"team_uuid": teams_uuid, "sport": sport, "uni": player_uni}
             })
         })
@@ -319,7 +320,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to create reference to SamaggiGamesSportCount.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -339,7 +340,7 @@ def delete_player(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to update sport count.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -361,7 +362,7 @@ def get_table(event, _):
             "statusCode": 400,
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameters. Parameter not provided.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
     except Exception as e:
@@ -369,7 +370,7 @@ def get_table(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to get table_name from request parameter due to unexpected error.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -380,7 +381,7 @@ def get_table(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "There was an error initialising dynamoDB resource in Boto3.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -391,7 +392,7 @@ def get_table(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to initialise the table.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
@@ -402,7 +403,7 @@ def get_table(event, _):
             "statusCode": 500,
             "body": json.dumps({
                 "message": "Unable to scan table.",
-                "error": str(e)
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
