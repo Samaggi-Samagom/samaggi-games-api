@@ -1,10 +1,35 @@
 import json
 import uuid
-
 import boto3
 from typing import Dict, Any, List
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
+
+class DynamoDBQueryResponse(list):
+
+    def __init__(self, list_data):
+        super().__init__(list_data["Items"])
+
+    def query(self, query_parameters: Dict[str: Any]) -> List[Dict[str: Any]]:
+        query_result = []
+        for result in self:
+            if all(result[key] == value for key, value in query_parameters.items()):
+                query_result.append(result)
+        return query_result
+
+    def item_exists_where(self, conditions: Dict[str: Any]) -> bool:
+        for result in self:
+            if all(result[key] == value for key, value in conditions.items()):
+                return True
+        return False
+
+    def first_item_where(self, conditions: Dict[str: Any], raise_if_not_found: bool = True) -> Dict[str: Any]:
+        for result in self:
+            if all(result[key] == value for key, value in conditions.items()):
+                return result
+        if raise_if_not_found:
+            raise ValueError("No item matches conditions")
+        return
 
 
 def cors(data: Dict[str, Any]):
@@ -83,7 +108,128 @@ def team_exists(event, _):
             })
 
 
+def add_player(event, context):
+    try:
+        university = event["queryStringParameters"]["university"]
+        sport = event["queryStringParameters"]["sport"]
+        name = event["queryStringParameters"]["name"]
+        main_university = event["queryStringParameters"]["main_university"]
+    except Exception as e:
+        return cors({
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Function call requires university, sport, name, main_university.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
 
+    player_uuid = str(uuid.uuid4())
+
+    try:
+        dynamodb = boto3.resource("dynamodb")
+        player_table = dynamodb.Table("SamaggiGamesPlayers")
+        teams_table = dynamodb.Table("SamaggiGamesTeams")
+        sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to initialise tables.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
+
+    try:
+        uni_query_response = DynamoDBQueryResponse(
+            teams_table.query(IndexName="uni", KeyConditionExpression=Key('uni').eq(university)))
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to get list of teams using the player's university.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
+                "data": {
+                    "university": university
+                }
+            })
+        })
+
+    if "Items" not in uni_query_response or (not uni_query_response.item_exists_where({"sport": sport})):
+        try:
+            team_captain = event["queryStringParameters"]["captainName"]
+            captain_contact = event["queryStringParameters"]["captainContact"]
+            team_id = uuid.uuid4()
+        except Exception as e:
+            return cors({
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": "Missing captain details for creating player with a new team.",
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
+                    "data": {
+                        "queryStringParameters": event["queryStringParameters"]
+                    }
+                })
+            })
+
+        try:
+            teams_table.put_item(
+                Item={
+                    "team_uuid": team_id,
+                    "captain": team_captain,
+                    "contact": captain_contact,
+                    "main_uni": main_university,
+                    "sport": sport,
+                    "uni": university
+                }
+            )
+        except Exception as e:
+            return cors({
+                "statusCode": 500,
+                "body": json.dumps({
+                    "message": "Unable to save new team.",
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                })
+            })
+
+        if main_university == university:
+            try:
+                sport_count_table.update_item(
+                    Key={
+                        "sport_name": sport
+                    },
+                    UpdateExpression="set team_count= team_count + :v",
+                    ExpressionAttributeValues={
+                        ":v": Decimal(1)
+                    },
+                    ReturnValues="UPDATED_NEW"
+                )
+            except Exception as e:
+                return cors({
+                    "statusCode": 500,
+                    "body": json.dumps({
+                        "message": "Unable to increment team count.",
+                        "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                    })
+                })
+
+    try:
+        player_table.put_item(
+            Item={
+                "player_uuid": player_uuid,
+                "main_uni": main_university,
+                "player_name": name,
+                "player_uni": university,
+                "sport": sport
+            }
+        )
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to save player to player table.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
 
 
 def get_player_id(event, context):
