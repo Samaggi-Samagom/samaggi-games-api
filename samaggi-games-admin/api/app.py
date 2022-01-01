@@ -266,10 +266,6 @@ def add_player(event, _):
     })
 
 
-def get_player_id(event, context):
-    pass
-
-
 def delete_player(event, _):
     try:
         player_id: str = event["queryStringParameters"]["player_id"]
