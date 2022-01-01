@@ -5,6 +5,16 @@ from typing import Dict, Any, List
 from boto3.dynamodb.conditions import Key
 from decimal import Decimal
 
+
+# Adapted from Elias Zamaria's answer on Stack Overflow, dated: 7th Oct 2010, accessed 21st Dec 2021.
+# Available at: https://stackoverflow.com/questions/1960516/python-json-serialize-a-decimal-object
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return float(o)
+        return super(DecimalEncoder, self).default(o)
+
+
 class DynamoDBQueryResponse(list):
 
     def __init__(self, list_data):
