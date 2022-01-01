@@ -9,6 +9,12 @@ Description: >
 Globals:
   Function:
     Timeout: 3
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+
 
 Resources:
   HelloWorldFunction:
@@ -45,9 +51,6 @@ Resources:
             Auth:
               ApiKeyRequired: true
               DefaultAuthorizer: SSGamesAPIAuthorizer
-              Authorizers:
-                SSGamesAPIAuthorizer:
-                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -70,9 +73,6 @@ Resources:
             Auth:
               ApiKeyRequired: true
               DefaultAuthorizer: SSGamesAPIAuthorizer
-              Authorizers:
-                SSGamesAPIAuthorizer:
-                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -94,9 +94,6 @@ Resources:
             Auth:
               ApiKeyRequired: true
               DefaultAuthorizer: SSGamesAPIAuthorizer
-              Authorizers:
-                SSGamesAPIAuthorizer:
-                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -117,9 +114,6 @@ Resources:
             Method: get
             Auth:
               DefaultAuthorizer: SSGamesAPIAuthorizer
-              Authorizers:
-                SSGamesAPIAuthorizer:
-                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -140,10 +134,6 @@ Resources:
             Method: get
             Auth:
               ApiKeyRequired: true
-              DefaultAuthorizer: SSGamesAPIAuthorizer
-              Authorizers:
-                SSGamesAPIAuthorizer:
-                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
