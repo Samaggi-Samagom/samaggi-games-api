@@ -34,23 +34,23 @@ Resources:
       CodeUri: api/
       Handler: app.team_exists
       Runtime: python3.8
-        Architectures:
-          - x86_64
-        Events:
-          TeamExists:
-            Type: Api
-            Properties:
-              Path: /team-exists
-              Method: get
-              Auth:
-                ApiKeyRequired: true
-                DefaultAuthorizer: SSGamesAPIAuthorizer
-                Authorizers:
-                  SSGamesAPIAuthorizer:
-                    UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
-        Policies:
-          - DynamoDBCrudPolicy:
-              TableName: "*"
+      Architectures:
+        - x86_64
+      Events:
+        TeamExists:
+          Type: Api
+          Properties:
+            Path: /team-exists
+            Method: get
+            Auth:
+              ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+              Authorizers:
+                SSGamesAPIAuthorizer:
+                  UserPoolArn: !GetAtt SSGamesAPIUserPool.Arn
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
 
 
   AddPlayer:
