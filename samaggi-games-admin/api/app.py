@@ -479,7 +479,7 @@ def delete_player(event, _):
             })
         })
 
-    if subtract_team_num:
+    if not subtract_team_num:
         return cors({
             "statusCode": 200,
             "body": json.dumps({
