@@ -38,12 +38,36 @@ class DynamoDBQueryResponse(list):
                 return True
         return False
 
+    def where_eq(self, key_1: str, key_2: str, eval_as: str = None):
+        valid_types = {
+            "NUMBER": int,
+            "STRING": str,
+            "ARRAY": list
+        }
+        if eval_as is not None and eval_as not in valid_types.keys():
+            raise ValueError("Invalid evaluation type.")
+        query_result = []
+        for result in self:
+            if eval_as is not None:
+                result[key_1] = valid_types[eval_as](result[key_1])
+                result[key_2] = valid_types[eval_as](result[key_2])
+            if result[key_1] == result[key_2]:
+                query_result.append(result)
+        return query_result
+
     def first_item_where(self, conditions: Dict[str, Any], raise_if_not_found: bool = True) -> Dict[str, Any]:
         for result in self:
             if all(result[key] == value for key, value in conditions.items()):
                 return result
         if raise_if_not_found:
             raise ValueError("No item matches conditions")
+
+    def unique_values_for_key(self, key: str):
+        unique_values = []
+        for result in self:
+            if result[key] not in unique_values:
+                unique_values.append(result[key])
+        return unique_values
 
 
 def cors(data: Dict[str, Any]):
@@ -120,6 +144,67 @@ def team_exists(event, _):
                     "exists": False
                 })
             })
+
+
+def data_statistics(_, __):
+    try:
+        dynamodb = boto3.resource("dynamodb")
+        player_table = dynamodb.Table("SamaggiGamesPlayers")
+        teams_table = dynamodb.Table("SamaggiGamesTeams")
+        sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to initialise one or more tables.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
+
+    try:
+        player_data_query = DynamoDBQueryResponse(player_table.scan())
+        teams_data_query = DynamoDBQueryResponse(teams_table.scan())
+        sport_data_query = DynamoDBQueryResponse(sport_count_table.scan())
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to scan tables.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
+
+    try:
+        response = {
+            "unique_main_universities": teams_data_query.unique_values_for_key("main_uni"),
+            "unique_player_universities": teams_data_query.unique_values_for_key("uni"),
+            "unique_players": player_data_query.unique_values_for_key("player_name"),
+            "full_teams": sport_data_query.where_eq("max_teams", "team_count", eval_as="NUMBER")
+        }
+
+        response["num_unique_main_universities"] = len(response["unique_main_universities"])
+        response["num_unique_player_universities"] = len(response["unique_player_universities"])
+        response["num_unique_player"] = len(response["unique_players"])
+    except Exception as e:
+        return cors({
+            "statusCode": 500,
+            "body": json.dumps({
+                "message": "Unable to parse query results.",
+                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+            })
+        })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "data": response,
+            "raw_data": {
+                "sport_count": sport_data_query,
+                "players": player_data_query,
+                "teams": teams_data_query
+            }
+        }, cls=DecimalEncoder)
+    })
 
 
 def add_player(event, _):
@@ -388,7 +473,7 @@ def delete_player(event, _):
     try:
         if "Items" in similar_player_query:
             similar_player_data: List[Dict[str, Any]] = similar_player_query["Items"]
-            if any(x["player_uni"] == player_uni for x in similar_player_data):
+            if any(x["player_uni"] == player_uni and x["sport"] == sport for x in similar_player_data):
                 similar_player_exists = True
             else:
                 similar_player_exists = False

@@ -55,6 +55,27 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: "*"
 
+  DataStatistics:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.data_statistics
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Events:
+        TeamExists:
+          Type: Api
+          Properties:
+            Path: /data-statistics
+            Method: get
+            Auth:
+              ApiKeyRequired: true
+              DefaultAuthorizer: SSGamesAPIAuthorizer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
 
   AddPlayer:
     Type: AWS::Serverless::Function
