@@ -22,7 +22,7 @@ Resources:
     Properties:
       CodeUri: hello_world/
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -39,7 +39,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.team_exists
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -60,7 +60,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.data_statistics
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -82,7 +82,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.add_player
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -103,7 +103,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.delete_player
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -124,7 +124,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.get_table
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
@@ -144,7 +144,7 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.get_player_id
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Events:
