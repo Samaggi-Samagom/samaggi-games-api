@@ -398,7 +398,8 @@ def add_player(event, _):
                     "sport": sport,
                     "team_university": team_university,
                     "captain": captain_name,
-                    "contact": captain_contact
+                    "contact": captain_contact,
+                    "university": team_university
                 }
             )
         except Exception as e:
@@ -441,6 +442,48 @@ def add_player(event, _):
                     "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                 })
             })
+
+        sport_teams = db.table("SamaggiGamesTeams").get(
+            "sport", equals=sport,
+            is_secondary_index=True
+        )
+        uni_in_table = sport_teams.filter("team_university", team_university).filter("university", player_university)
+
+        if not uni_in_table:
+            try:
+                captain_first_name = event["arguments"]["captainFirstName"]
+                captain_last_name = event["arguments"]["captainLastName"]
+                captain_name = " ".join([captain_first_name, captain_last_name])
+                captain_contact = event["arguments"]["captain_contact"]
+                team_id = str(uuid.uuid4())
+            except Exception as e:
+                return cors({
+                    "statusCode": 400,
+                    "body": json.dumps({
+                        "message": "There was an issue getting required parameters (captain details).",
+                        "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
+                    })
+                })
+
+            try:  # add team to SamaggiGamesTeams table
+                db.table("SamaggiGamesTeams").write(
+                    {
+                        "team_uuid": team_id,
+                        "sport": sport,
+                        "team_university": team_university,
+                        "captain": captain_name,
+                        "contact": captain_contact,
+                        "university": player_university
+                    }
+                )
+            except Exception as e:
+                return cors({
+                    "statusCode": 500,
+                    "body": json.dumps({
+                        "message": f"Unable to save team {team_university} to team table.",
+                        "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                    })
+                })
 
         try:  # add player to SamaggiGamesPlayers table
             db.table("SamaggiGamesPlayers").write(
@@ -508,7 +551,7 @@ def delete_player(event, _):
         details["lastPlayerOnTeam"] = True
         details["willDeleteTeam"] = True
 
-        team_data = db.table("SamaggiGamesTeams").get(
+        uni_teams = db.table("SamaggiGamesTeams").get(
             "team_university", equals=team_university,
             is_secondary_index=True
         )
