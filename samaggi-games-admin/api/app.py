@@ -107,8 +107,9 @@ def check_code(_, __):
 
 def team_exists(event, _):
     try:
-        team_university = event["arguments"]["team_university"]
-        sport = event["arguments"]["sport"]
+        arguments = Arguments(event)
+        team_university = arguments["team_university"]
+        sport = arguments["sport"]
     except Exception as e:
         return cors({
             "statusCode": 400,
@@ -203,11 +204,12 @@ def data_statistics(_, __):
 
 
 def sport_clash(event, _):
-    sport = event["arguments"]["sport"]
-    player_first_name = event["arguments"]["playerFirstName"]
-    player_last_name = event["arguments"]["playerLastName"]
+    arguments = Arguments(event)
+    sport = arguments["sport"]
+    player_first_name = arguments["playerFirstName"]
+    player_last_name = arguments["playerLastName"]
     name = " ".join([player_first_name, player_last_name])
-    player_university = event["arguments"]["player_university"]
+    player_university = arguments["player_university"]
 
     reader = csv.reader(open("timetable.csv", "r"))
     timetable = {}
@@ -258,9 +260,10 @@ def sport_clash(event, _):
 
 
 def is_player_valid(event, _):  # get player_university, team_university, sport
-    team_uni = event["arguments"]["team_university"]
-    player_uni = event["arguments"]["player_university"]
-    sport = event["arguments"]["sport"]
+    arguments = Arguments(event)
+    team_uni = arguments["team_university"]
+    player_uni = arguments["player_university"]
+    sport = arguments["sport"]
 
     allied_unis = []
     player_data = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
@@ -307,8 +310,9 @@ def add_player(event, _):
     details = {}
     # get the players' team_university and sport
     try:
-        team_university = event["arguments"]["team_university"]
-        sport = event["arguments"]["sport"]
+        arguments = Arguments(event)
+        team_university = arguments["team_university"]
+        sport = arguments["sport"]
     except Exception as e:
         return cors({
             "statusCode": 400,
@@ -353,10 +357,10 @@ def add_player(event, _):
 
         details["willCreateTeam"] = True
         try:
-            captain_first_name = event["arguments"]["captainFirstName"]
-            captain_last_name = event["arguments"]["captainLastName"]
+            captain_first_name = arguments["captainFirstName"]
+            captain_last_name = arguments["captainLastName"]
             captain_name = " ".join([captain_first_name, captain_last_name])
-            captain_contact = event["arguments"]["captain_contact"]
+            captain_contact = arguments["captain_contact"]
             team_id = str(uuid.uuid4())
         except Exception as e:
             return cors({
@@ -404,12 +408,12 @@ def add_player(event, _):
         else:
             details["didUpdateTeamCount"] = True
 
-    for i in range(len(event["arguments"]["players"])):
+    for i in range(len(arguments["players"])):
         try:  # get each player name and player_university
-            player_first_name = event["arguments"]["players"][i]["playerFirstName"]
-            player_last_name = event["arguments"]["players"][i]["playerLastName"]
+            player_first_name = arguments["players"][i]["playerFirstName"]
+            player_last_name = arguments["players"][i]["playerLastName"]
             name = " ".join([player_first_name, player_last_name])
-            player_university = event["arguments"]["players"][i]["player_university"]
+            player_university = arguments["players"][i]["player_university"]
             player_uuid = str(uuid.uuid4())
         except Exception as e:
             return cors({
@@ -451,7 +455,8 @@ def add_player(event, _):
 def delete_player(event, _):
     details = {}
 
-    player_id: str = event["arguments"]["player_uuid"]
+    arguments = Arguments(event)
+    player_id: str = arguments["player_uuid"]
 
     player_in_table = db.table("SamaggiGamesPlayers").there_exists(  # find player in SamaggiGamesPlayers table
         player_id, at_column="player_uuid"
@@ -512,7 +517,8 @@ def delete_player(event, _):
 
 
 def edit_player(event, _):
-    player_id: str = event["arguments"]["player_uuid"]
+    arguments = Arguments(event)
+    player_id: str = arguments["player_uuid"]
 
     player_in_table = db.table("SamaggiGamesPlayers").there_exists(  # find player in SamaggiGamesPlayers table
         player_id, at_column="player_uuid"
@@ -530,12 +536,12 @@ def edit_player(event, _):
 
     # get the new players' details
     try:
-        team_university = event["arguments"]["team_university"]
-        sport = event["arguments"]["sport"]
-        player_first_name = event["arguments"]["playerFirstName"]
-        player_last_name = event["arguments"]["playerLastName"]
+        team_university = arguments["team_university"]
+        sport = arguments["sport"]
+        player_first_name = arguments["playerFirstName"]
+        player_last_name = arguments["playerLastName"]
         name = " ".join([player_first_name, player_last_name])
-        player_university = event["arguments"]["player_university"]
+        player_university = arguments["player_university"]
         player_uuid = str(uuid.uuid4())
     except Exception as e:
         return cors({
@@ -596,7 +602,8 @@ def get_table_v2(event, _):
 
 def get_table(event, _):
     try:
-        table_name = event["arguments"]["table_name"]
+        arguments = Arguments(event)
+        table_name = arguments["table_name"]
     except KeyError as e:
         return cors({
             "statusCode": 400,
