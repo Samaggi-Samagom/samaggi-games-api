@@ -104,7 +104,6 @@ def check_code(_, __):
     })
 
 
-
 def team_exists(event, _):
     try:
         arguments = Arguments(event)
@@ -206,9 +205,7 @@ def data_statistics(_, __):
 def sport_clash(event, _):
     arguments = Arguments(event)
     sport = arguments["sport"]
-    player_first_name = arguments["playerFirstName"]
-    player_last_name = arguments["playerLastName"]
-    name = " ".join([player_first_name, player_last_name])
+    name = arguments["name"]
     player_university = arguments["player_university"]
 
     reader = csv.reader(open("timetable.csv", "r"))
@@ -357,9 +354,7 @@ def add_player(event, _):
 
         details["willCreateTeam"] = True
         try:
-            captain_first_name = arguments["captainFirstName"]
-            captain_last_name = arguments["captainLastName"]
-            captain_name = " ".join([captain_first_name, captain_last_name])
+            captain_name = arguments["captain_name"]
             captain_contact = arguments["captain_contact"]
             team_id = str(uuid.uuid4())
         except Exception as e:
@@ -410,9 +405,7 @@ def add_player(event, _):
 
     for i in range(len(arguments["players"])):
         try:  # get each player name and player_university
-            player_first_name = arguments["players"][i]["playerFirstName"]
-            player_last_name = arguments["players"][i]["playerLastName"]
-            name = " ".join([player_first_name, player_last_name])
+            name = arguments["players"][i]["name"]
             player_university = arguments["players"][i]["player_university"]
             player_uuid = str(uuid.uuid4())
         except Exception as e:
@@ -538,9 +531,7 @@ def edit_player(event, _):
     try:
         team_university = arguments["team_university"]
         sport = arguments["sport"]
-        player_first_name = arguments["playerFirstName"]
-        player_last_name = arguments["playerLastName"]
-        name = " ".join([player_first_name, player_last_name])
+        name = arguments["name"]
         player_university = arguments["player_university"]
         player_uuid = str(uuid.uuid4())
     except Exception as e:
