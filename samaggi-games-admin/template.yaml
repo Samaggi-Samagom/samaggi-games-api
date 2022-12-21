@@ -34,6 +34,36 @@ Resources:
             Auth:
               ApiKeyRequired: true
 
+  CheckClash:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.sport_clash
+      Events:
+        CheckClash:
+          Type: Api
+          Properties:
+            Path: /check-clash
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  PlayerValid:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.is_player_valid
+      Events:
+        PlayerValid:
+          Type: Api
+          Properties:
+            Path: /player-valid
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
   TeamExistsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -45,9 +75,6 @@ Resources:
           Properties:
             Path: /team-exists
             Method: post
-            Auth:
-              ApiKeyRequired: true
-              DefaultAuthorizer: SSGamesAPIAuthorizer
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
