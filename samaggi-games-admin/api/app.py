@@ -107,7 +107,7 @@ def check_code(_, __):
 def team_exists(event, _):
     try:
         arguments = Arguments(event)
-        team_university = arguments["team_university"]
+        team_university = arguments["player_university"]
         sport = arguments["sport"]
     except Exception as e:
         return cors({
@@ -119,7 +119,7 @@ def team_exists(event, _):
         })
 
     team_data = db.table("SamaggiGamesTeams").get(
-        "team_university", equals=team_university,
+        "university", equals=team_university,
         is_secondary_index=True
     )
 
