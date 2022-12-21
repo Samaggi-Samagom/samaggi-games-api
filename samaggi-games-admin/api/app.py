@@ -262,6 +262,44 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
     player_uni = arguments["player_university"]
     sport = arguments["sport"]
 
+    team_player = db.table("SamaggiGamesPlayers").get(
+        "team_university", equals=team_uni,
+        is_secondary_index=True
+    ).filter("sport", sport)
+
+    if len(team_player) == 0:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"First player must be from the university they're playing for.",
+                "valid": False
+            })
+        })
+
+    similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
+        "player_university", equals=player_uni,
+        is_secondary_index=True
+    ).filter("sport", sport)
+
+    similar_players_uni = list(similar_players.unique("team_university"))
+    if len(similar_players_uni) > 0 and similar_players_uni[0] != team_uni:
+        if similar_players_uni == player_uni:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{player_uni} already has a team for {sport}.",
+                    "valid": False
+                })
+            })
+        else:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{player_uni} already playing for another team {sport}.",
+                    "valid": False
+                })
+            })
+
     allied_unis = []
     player_data = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
         "team_university", equals=team_uni,
@@ -280,19 +318,6 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
             })
         })
 
-    player_teams = db.table("SamaggiGamesTeams").get(  # all uni teams that are the same as player_uni
-        "team_university", equals=player_uni,
-        is_secondary_index=True
-    )
-
-    if len(player_teams.filter("sport", sport)):
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": f"{player_uni} already has a team for {sport}.",
-                "valid": False
-            })
-        })
 
     return cors({
         "statusCode": 200,
