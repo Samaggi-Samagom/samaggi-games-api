@@ -1,0 +1,1 @@
+git+https://github.com/Samaggi-Samagom/DynamoDB-Python-Helper@main
