@@ -4,9 +4,10 @@ import json
 import uuid
 from decimal import Decimal
 from typing import Dict, Any, List
-
 import boto3
 from DynamoDBInterface import DynamoDB
+from support import Arguments
+
 db = DynamoDB.Database()
 
 
@@ -81,6 +82,27 @@ def cors(data: Dict[str, Any]):
         'Access-Control-Allow-Methods': '*'
     }
     return data
+
+
+def get_sports(_, __):
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Sports Retrieved.",
+            "sports": list(db.table("SamaggiGamesPlayers").scan().unique("sport"))
+        })
+    })
+
+
+def check_code(_, __):
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Checked.",
+            "valid": True
+        })
+    })
+
 
 
 def team_exists(event, _):
@@ -561,11 +583,24 @@ def edit_player(event, _):
         })
     })
 
+
+def get_table_v2(event, _):
+    arguments = Arguments(event)
+
+    table_name = arguments["tableName"]
+    filters = arguments["filters"]
+
+    scan_result = db.table(table_name).scan()
+
+    res = scan_result
+    for f in filters:
+        res = res.filter(f["key"], f["value"])
+
     return cors({
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Player successfully deleted.",
-            "detail": details
+            "message": "Table Retrieved.",
+            "tableData": res.all()
         })
     })
 

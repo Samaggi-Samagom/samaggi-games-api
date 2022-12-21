@@ -9,6 +9,9 @@ Description: >
 Globals:
   Function:
     Timeout: 3
+    Runtime: python3.9
+    Architectures:
+      - arm64
   Api:
     Cors:
       AllowMethods: "'*'"
@@ -22,9 +25,6 @@ Resources:
     Properties:
       CodeUri: hello_world/
       Handler: app.lambda_handler
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         HelloWorld:
           Type: Api
@@ -39,15 +39,12 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.team_exists
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         TeamExists:
           Type: Api
           Properties:
             Path: /team-exists
-            Method: get
+            Method: post
             Auth:
               ApiKeyRequired: true
               DefaultAuthorizer: SSGamesAPIAuthorizer
@@ -60,9 +57,6 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.data_statistics
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         TeamExists:
           Type: Api
@@ -82,18 +76,12 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.add_player
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         AddPlayer:
           Type: Api
           Properties:
             Path: /add-player
-            Method: get
-            Auth:
-              ApiKeyRequired: true
-              DefaultAuthorizer: SSGamesAPIAuthorizer
+            Method: post
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -103,9 +91,6 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.delete_player
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         DeletePlayer:
           Type: Api
@@ -124,17 +109,57 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.get_table
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         GetTable:
           Type: Api
           Properties:
             Path: /get-table
-            Method: get
-            Auth:
-              DefaultAuthorizer: SSGamesAPIAuthorizer
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  GetTableFiltered:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.get_table_v2
+      Events:
+        GetTableFiltered:
+          Type: Api
+          Properties:
+            Path: /get-table-filtered
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  GetSports:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.get_sports
+      Events:
+        GetSports:
+          Type: Api
+          Properties:
+            Path: /get-sports
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  CheckCode:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.check_code
+      Events:
+        CheckCode:
+          Type: Api
+          Properties:
+            Path: /check-code
+            Method: post
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
@@ -144,9 +169,6 @@ Resources:
     Properties:
       CodeUri: api/
       Handler: app.get_player_id
-      Runtime: python3.8
-      Architectures:
-        - x86_64
       Events:
         GetPlayerID:
           Type: Api
