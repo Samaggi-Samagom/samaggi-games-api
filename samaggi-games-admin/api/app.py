@@ -199,7 +199,7 @@ def sport_clash(event, _):
     filtered_players = player_data.filter("player_university", player_university)
 
     for i in range(len(filtered_players)):
-        reg_sport = filtered_players[i]["sport"] # get the sports the player is playing
+        reg_sport = filtered_players[i]["sport"]  # get the sports the player is playing
 
         start_h1 = int(timetable[reg_sport]['start_time'].split(':')[0])
         start_m1 = int(timetable[reg_sport]['start_time'].split(':')[1])
@@ -235,7 +235,7 @@ def sport_clash(event, _):
     })
 
 
-def uni_exceeds(event, _):  # get player_university, team_university, sport
+def is_player_valid(event, _):  # get player_university, team_university, sport
     team_uni = event["arguments"]["team_university"]
     player_uni = event["arguments"]["player_university"]
     sport = event["arguments"]["sport"]
@@ -253,8 +253,22 @@ def uni_exceeds(event, _):  # get player_university, team_university, sport
         return cors({
             "statusCode": 200,
             "body": json.dumps({
-                "message": "Success",
-                "exceed": True
+                "message": f"{team_uni} {sport} team already has three universities.",
+                "valid": False
+            })
+        })
+
+    player_teams = db.table("SamaggiGamesTeams").get(  # all uni teams that are the same as player_uni
+        "team_university", equals=player_uni,
+        is_secondary_index=True
+    )
+
+    if len(player_teams.filter("sport", sport)):
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{player_uni} already has a team for {sport}.",
+                "valid": False
             })
         })
 
@@ -262,7 +276,7 @@ def uni_exceeds(event, _):  # get player_university, team_university, sport
         "statusCode": 200,
         "body": json.dumps({
             "message": "Success",
-            "exceed": False
+            "valid": True
         })
     })
 
