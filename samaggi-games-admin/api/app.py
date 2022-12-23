@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Dict, Any, List
 import boto3
 from DynamoDBInterface import DynamoDB
-from support import Arguments
+from support import Arguments, university_names, university_names_simplified
 
 db = DynamoDB.Database()
 
