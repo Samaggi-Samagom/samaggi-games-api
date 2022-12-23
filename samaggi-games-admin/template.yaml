@@ -123,10 +123,7 @@ Resources:
           Type: Api
           Properties:
             Path: /delete-player
-            Method: get
-            Auth:
-              ApiKeyRequired: true
-              DefaultAuthorizer: SSGamesAPIAuthorizer
+            Method: post
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
