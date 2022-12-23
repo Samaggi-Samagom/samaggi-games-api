@@ -94,12 +94,16 @@ def get_sports(_, __):
     })
 
 
-def check_code(_, __):
+def check_code(event, __):
+    arguments = Arguments(event)
+    code = arguments["code"].lower().replace(" ", "")
+
     return cors({
         "statusCode": 200,
         "body": json.dumps({
             "message": "Checked.",
-            "valid": True
+            "valid": code in university_names_simplified,
+            "name": university_names[university_names_simplified.index(code)] if code in university_names_simplified else ""
         })
     })
 
