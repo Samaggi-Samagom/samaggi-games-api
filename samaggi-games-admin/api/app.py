@@ -456,10 +456,8 @@ def add_player(event, _):
 
         if not uni_in_table:
             try:
-                captain_first_name = event["arguments"]["captainFirstName"]
-                captain_last_name = event["arguments"]["captainLastName"]
-                captain_name = " ".join([captain_first_name, captain_last_name])
-                captain_contact = event["arguments"]["captain_contact"]
+                captain_name = arguments["captain_name"]
+                captain_contact = arguments["captain_contact"]
                 team_id = str(uuid.uuid4())
             except Exception as e:
                 return cors({
