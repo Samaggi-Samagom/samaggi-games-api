@@ -436,6 +436,7 @@ def add_player(event, _):
     for i in range(len(arguments["players"])):
         try:  # get each player name and player_university
             name = arguments["players"][i]["name"]
+            nickname = arguments["players"][i]["nickname"]
             player_university = arguments["players"][i]["player_university"]
             player_uuid = str(uuid.uuid4())
         except Exception as e:
@@ -496,6 +497,7 @@ def add_player(event, _):
                     "sport": sport,
                     "team_university": team_university,
                     "name": name,
+                    "nickname": nickname,
                     "player_university": player_university
                 }
             )
