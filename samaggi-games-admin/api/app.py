@@ -313,7 +313,8 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
     [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
      filtered_players[j]["player_university"] not in allied_unis]
 
-    if player_uni not in allied_unis and len(allied_unis) == 3:
+    if player_uni not in allied_unis and ((len(allied_unis) == 3 and sport != "Football") or
+                                          (len(allied_unis) == 5 and sport == "Football")):
         return cors({
             "statusCode": 200,
             "body": json.dumps({
@@ -321,7 +322,6 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
                 "valid": False
             })
         })
-
 
     return cors({
         "statusCode": 200,
