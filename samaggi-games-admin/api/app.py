@@ -89,7 +89,7 @@ def get_sports(_, __):
         "statusCode": 200,
         "body": json.dumps({
             "message": "Sports Retrieved.",
-            "sports": list(db.table("SamaggiGamesPlayers").scan().unique("sport"))
+            "sports": list(x["sport_name"] for x in db.table("SamaggiGamesSportCount").scan().all())
         })
     })
 
