@@ -271,7 +271,7 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
         is_secondary_index=True
     ).filter("sport", sport)
 
-    if len(team_player) == 0:
+    if len(team_player) == 0 and player_uni != team_uni:
         return cors({
             "statusCode": 200,
             "body": json.dumps({
