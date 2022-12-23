@@ -523,54 +523,61 @@ def delete_player(event, _):
     arguments = Arguments(event)
     player_id: str = arguments["player_uuid"]
 
-    player_in_table = db.table("SamaggiGamesPlayers").there_exists(  # find player in SamaggiGamesPlayers table
-        player_id, at_column="player_uuid"
-    )
-
-    if not player_in_table:  # if player do not exist
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Cannot find player in the player table."
-            })
-        })
-
     deleting_player = db.table("SamaggiGamesPlayers").get(
         "player_uuid", equals=player_id
     )
 
-    team_university = deleting_player[0]["team_university"]
-    sport = deleting_player[0]["sport"]
+    if not deleting_player.exists():  # if player do not exist
+        return cors({
+            "statusCode": 404,
+            "body": json.dumps({
+                "message": "Cannot find player in the player table.",
+                "error": True
+            })
+        })
 
-    details["willDeletePlayer"] = True
-    db.table("SamaggiGamesPlayers").delete("player_uuid", player_id)  # delete
-    details["didDeletePlayer"] = True
+    team_university = deleting_player["team_university"]
+    player_university = deleting_player["player_university"]
+    sport = deleting_player["sport"]
 
-    player_data = db.table("SamaggiGamesPlayers").get(  # find other players with the same team_university and sport
-        "team_university", equals=team_university,
+    sport_players = db.table("SamaggiGamesPlayers").get(
+        "sport", equals=sport,
         is_secondary_index=True
     )
 
-    if not (any(player["sport"] == sport for player in player_data.all())):  # if this is the only player in the team
-        details["lastPlayerOnTeam"] = True
-        details["willDeleteTeam"] = True
+    sport_players_same_team = sport_players.filter("team_university", team_university)
+    sport_players_same_uni = sport_players.filter("player_university", player_university)
 
-        uni_teams = db.table("SamaggiGamesTeams").get(
-            "team_university", equals=team_university,
+    if team_university == player_university:
+        if sport_players_same_uni.length() == 1 and sport_players_same_uni.length() != sport_players_same_team.length():
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "Team must not be left with external players and no internal players.",
+                    "error": True
+                })
+            })
+
+    db.table("SamaggiGamesPlayers").delete(where="player_uuid", equals=player_id)
+
+    if sport_players_same_uni.length() == 1:
+        details["deleteTeam"] = True
+        team = db.table("SamaggiGamesTeams").get(
+            "sport", equals=sport,
             is_secondary_index=True
-        )
+        ).filter("university", player_university)
 
-        team_id = team_data.filter("sport", sport)[0]["team_uuid"]
-        db.table("SamaggiGamesTeams").delete("team_uuid",
-                                             team_id)  # delete team
-        details["didDeleteTeam"] = True
+        if team.exists():
+            details["deleteTeamExist"] = True
+            team_id = team["team_uuid"]
+            db.table("SamaggiGamesTeams").delete("team_uuid", team_id)
 
-        details["willUpdateTeamCount"] = True
-        db.table("SamaggiGamesSportCount").decrement(  # decrement team count
-            where="sport_name", equals=sport,
-            value_key="team_count", by=1
-        )
-        details["didUpdateTeamCount"] = True
+        if team_university == player_university:
+            details["decrementTeamCount"] = True
+            db.table("SamaggiGamesSportCount").decrement(
+                where="sport_name", equals=sport,
+                value_key="team_count", by=1
+            )
 
     return cors({
         "statusCode": 200,
