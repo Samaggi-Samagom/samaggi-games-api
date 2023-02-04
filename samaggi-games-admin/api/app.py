@@ -176,9 +176,9 @@ def data_statistics(_, __):
 
     try:
         response = {
-            "unique_main_universities": teams_data_query.unique_values_for_key("main_uni"),
-            "unique_player_universities": teams_data_query.unique_values_for_key("uni"),
-            "unique_players": player_data_query.unique_values_for_key("player_name"),
+            "unique_main_universities": teams_data_query.unique_values_for_key("team_university"),
+            "unique_player_universities": teams_data_query.unique_values_for_key("university"),
+            "unique_players": player_data_query.unique_values_for_key("name"),
             "full_teams": sport_data_query.where_eq("max_teams", "team_count", eval_as="NUMBER")
         }
 
