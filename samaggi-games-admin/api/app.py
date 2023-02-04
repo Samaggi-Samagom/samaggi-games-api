@@ -1,9 +1,14 @@
+import csv
+import datetime
 import json
 import uuid
-import boto3
-from typing import Dict, Any, List
-from boto3.dynamodb.conditions import Key
 from decimal import Decimal
+from typing import Dict, Any, List
+import boto3
+from DynamoDBInterface import DynamoDB
+from support import Arguments, university_names, university_names_simplified
+
+db = DynamoDB.Database()
 
 
 # Adapted from Elias Zamaria's answer on Stack Overflow, dated: 7th Oct 2010, accessed 21st Dec 2021.
@@ -79,10 +84,35 @@ def cors(data: Dict[str, Any]):
     return data
 
 
+def get_sports(_, __):
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Sports Retrieved.",
+            "sports": list(x["sport_name"] for x in db.table("SamaggiGamesSportCount").scan().all())
+        })
+    })
+
+
+def check_code(event, __):
+    arguments = Arguments(event)
+    code = arguments["code"].lower().replace(" ", "")
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Checked.",
+            "valid": code in university_names_simplified,
+            "name": university_names[university_names_simplified.index(code)] if code in university_names_simplified else ""
+        })
+    })
+
+
 def team_exists(event, _):
     try:
-        university = event["queryStringParameters"]["university"]
-        sport = event["queryStringParameters"]["sport"]
+        arguments = Arguments(event)
+        team_university = arguments["player_university"]
+        sport = arguments["sport"]
     except Exception as e:
         return cors({
             "statusCode": 400,
@@ -92,65 +122,34 @@ def team_exists(event, _):
             })
         })
 
-    try:
-        dynamodb = boto3.resource("dynamodb")
-        teams_table = dynamodb.Table("SamaggiGamesTeams")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an error initialising dynamoDB resource or creating reference to table.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    team_data = db.table("SamaggiGamesTeams").get(
+        "university", equals=team_university,
+        is_secondary_index=True
+    )
 
-    try:
-        uni_query_response = teams_table.query(IndexName="uni", KeyConditionExpression=Key('uni').eq(university))
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to get list of teams using university.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
-                "data": {
-                    "university": university
-                }
-            })
-        })
-
-    if "Items" not in uni_query_response:
+    if any(team["sport"] == sport for team in team_data.all()):
         return cors({
             "statusCode": 200,
             "body": json.dumps({
-                "message": "The team does not exist.",
-                "exists": False
+                "message": "Success",
+                "exist": True
             })
         })
-    else:
-        data = uni_query_response["Items"]
-        if any([x["sport"] == sport for x in data]):
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": "The team exists.",
-                    "exists": True
-                })
-            })
-        else:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": "The team does not exist.",
-                    "exists": False
-                })
-            })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success",
+            "exist": False
+        })
+    })
 
 
 def data_statistics(_, __):
     try:
         dynamodb = boto3.resource("dynamodb")
         player_table = dynamodb.Table("SamaggiGamesPlayers")
-        teams_table = dynamodb.Table("SamaggiGamesTeams")
+        team_table = dynamodb.Table("SamaggiGamesTeams")
         sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
     except Exception as e:
         return cors({
@@ -163,7 +162,7 @@ def data_statistics(_, __):
 
     try:
         player_data_query = DynamoDBQueryResponse(player_table.scan())
-        teams_data_query = DynamoDBQueryResponse(teams_table.scan())
+        teams_data_query = DynamoDBQueryResponse(team_table.scan())
         sport_data_query = DynamoDBQueryResponse(sport_count_table.scan())
     except Exception as e:
         return cors({
@@ -207,140 +206,307 @@ def data_statistics(_, __):
     })
 
 
+def sport_clash(event, _):
+    arguments = Arguments(event)
+    sport = arguments["sport"]
+    name = arguments["name"]
+    player_university = arguments["player_university"]
+
+    reader = csv.reader(open("timetable.csv", "r"))
+    timetable = {}
+    for row in reader:
+        timetable[row[0]] = {'start_time': row[1], 'end_time': row[2]}
+
+    player_data = db.table("SamaggiGamesPlayers").get(  # get details of the player
+        "name", equals=name,
+        is_secondary_index=True
+    )
+    filtered_players = player_data.filter("player_university", player_university)
+
+    for i in range(len(filtered_players)):
+        reg_sport = filtered_players[i]["sport"]  # get the sports the player is playing
+
+        start_h1 = int(timetable[reg_sport]['start_time'].split(':')[0])
+        start_m1 = int(timetable[reg_sport]['start_time'].split(':')[1])
+        start_time1 = datetime.datetime(2023, 3, 4, start_h1, start_m1, 00)
+
+        end_h1 = int(timetable[reg_sport]['end_time'].split(':')[0])
+        end_m1 = int(timetable[reg_sport]['end_time'].split(':')[1])
+        end_time1 = datetime.datetime(2023, 3, 4, end_h1, end_m1, 00)
+
+        start_h2 = int(timetable[sport]['start_time'].split(':')[0])
+        start_m2 = int(timetable[sport]['start_time'].split(':')[1])
+        start_time2 = datetime.datetime(2023, 3, 4, start_h2, start_m2, 00)
+
+        end_h2 = int(timetable[sport]['end_time'].split(':')[0])
+        end_m2 = int(timetable[sport]['end_time'].split(':')[1])
+        end_time2 = datetime.datetime(2023, 3, 4, end_h2, end_m2, 00)
+
+        if not (end_time1 <= start_time2 or end_time2 <= start_time1):
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "Success",
+                    "clash": True
+                })
+            })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success",
+            "clash": False
+        })
+    })
+
+
+def is_player_valid(event, _):  # get player_university, team_university, sport
+    arguments = Arguments(event)
+    team_uni = arguments["team_university"]
+    player_uni = arguments["player_university"]
+    sport = arguments["sport"]
+
+    team_player = db.table("SamaggiGamesPlayers").get(
+        "team_university", equals=team_uni,
+        is_secondary_index=True
+    ).filter("sport", sport)
+
+    if len(team_player) == 0 and player_uni != team_uni:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"First player must be from the university they're playing for.",
+                "valid": False
+            })
+        })
+
+    similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
+        "player_university", equals=player_uni,
+        is_secondary_index=True
+    ).filter("sport", sport)
+
+    similar_players_uni = list(similar_players.unique("team_university"))
+    if len(similar_players_uni) > 0 and similar_players_uni[0] != team_uni:
+        if similar_players_uni == player_uni:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{player_uni} already has a team for {sport}.",
+                    "valid": False
+                })
+            })
+        else:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{player_uni} already playing for another team {sport}.",
+                    "valid": False
+                })
+            })
+
+    allied_unis = []
+    player_data = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
+        "team_university", equals=team_uni,
+        is_secondary_index=True
+    )
+    filtered_players = player_data.filter("sport", sport)  # all players that play this sport for this uni
+    [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
+     filtered_players[j]["player_university"] not in allied_unis]
+
+    if player_uni not in allied_unis and ((len(allied_unis) == 3 and sport != "Football") or
+                                          (len(allied_unis) == 5 and sport == "Football")):
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{team_uni} {sport} team already has three universities.",
+                "valid": False
+            })
+        })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success",
+            "valid": True
+        })
+    })
+
+
 def add_player(event, _):
     details = {}
-
+    # get the players' team_university and sport
     try:
-        university = event["queryStringParameters"]["university"]
-        sport = event["queryStringParameters"]["sport"]
-        name = event["queryStringParameters"]["name"]
-        main_university = event["queryStringParameters"]["main_university"]
+        arguments = Arguments(event)
+        team_university = arguments["team_university"]
+        sport = arguments["sport"]
     except Exception as e:
         return cors({
             "statusCode": 400,
             "body": json.dumps({
-                "message": "Function call requires university, sport, name, main_university.",
+                "message": "There was an issue getting required parameters.",
                 "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
-    player_uuid = str(uuid.uuid4())
+    team_data = db.table("SamaggiGamesTeams").get(
+        "team_university", equals=team_university,
+        is_secondary_index=True
+    )
 
-    try:
-        dynamodb = boto3.resource("dynamodb")
-        player_table = dynamodb.Table("SamaggiGamesPlayers")
-        teams_table = dynamodb.Table("SamaggiGamesTeams")
-        sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to initialise tables.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+    if not any(team["sport"] == sport for team in team_data.all()):  # if team not already in SamaggiGamesTeams table
+        try:
+            count_data = db.table("SamaggiGamesSportCount").get(
+                "sport_name", equals=sport
+            )
+        except Exception as e:
+            return cors({
+                "statusCode": 500,
+                "body": json.dumps({
+                    "message": f"Unable to get the number of teams for {sport}.",
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
+                    "data": {
+                        "university": sport
+                    }
+                })
             })
-        })
 
-    try:
-        uni_query_response = DynamoDBQueryResponse(
-            teams_table.query(IndexName="uni", KeyConditionExpression=Key('uni').eq(university)))
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to get list of teams using the player's university.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
-                "data": {
-                    "university": university
-                }
+        team_count = int(count_data[0]["team_count"])
+        max_team = int(count_data[0]["max_teams"])
+
+        if team_count >= max_team:  # check if team slot for the sport is full
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{sport} already has the maximum number of teams"
+                })
             })
-        })
 
-    if uni_query_response.is_empty or (not uni_query_response.item_exists_where({"sport": sport})):
         details["willCreateTeam"] = True
         try:
-            team_captain = event["queryStringParameters"]["captain_name"]
-            captain_contact = event["queryStringParameters"]["captain_contact"]
+            captain_name = arguments["captain_name"]
+            captain_contact = arguments["captain_contact"]
             team_id = str(uuid.uuid4())
         except Exception as e:
             return cors({
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "Missing captain details for creating player with a new team.",
+                    "message": "There was an issue getting required parameters (captain details).",
                     "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
-                    "data": {
-                        "queryStringParameters": event["queryStringParameters"],
-                        "items": uni_query_response,
-                        "sport": sport,
-                        "debug_1": uni_query_response.is_empty,
-                        "debug_2": not uni_query_response.item_exists_where({"sport": sport})
-                    }
                 })
             })
 
-        try:
-            teams_table.put_item(
-                Item={
+        try:  # add team to SamaggiGamesTeams table
+            db.table("SamaggiGamesTeams").write(
+                {
                     "team_uuid": team_id,
-                    "captain": team_captain,
-                    "contact": captain_contact,
-                    "main_uni": main_university,
                     "sport": sport,
-                    "uni": university
+                    "team_university": team_university,
+                    "captain": captain_name,
+                    "contact": captain_contact,
+                    "university": team_university
                 }
             )
         except Exception as e:
             return cors({
                 "statusCode": 500,
                 "body": json.dumps({
-                    "message": "Unable to save new team.",
+                    "message": f"Unable to save team {team_university} to team table.",
                     "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                 })
             })
         else:
             details["didCreateTeam"] = True
 
-        if main_university == university:
-            details["willUpdateTeamCount"] = True
+        details["willUpdateTeamCount"] = True  # increment team count
+        try:
+            db.table("SamaggiGamesSportCount").increment(
+                where="sport_name", equals=sport,
+                value_key="team_count", by=1
+            )
+        except Exception as e:
+            return cors({
+                "statusCode": 500,
+                "body": json.dumps({
+                    "message": f"Unable to increment team_count for {sport}.",
+                })
+            })
+        else:
+            details["didUpdateTeamCount"] = True
+
+    for i in range(len(arguments["players"])):
+        try:  # get each player name and player_university
+            name = arguments["players"][i]["name"]
+            nickname = arguments["players"][i]["nickname"]
+            player_university = arguments["players"][i]["player_university"]
+            player_uuid = str(uuid.uuid4())
+        except Exception as e:
+            return cors({
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": "Function call requires playerFirstName, playerLastName and player_university.",
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                })
+            })
+
+        sport_teams = db.table("SamaggiGamesTeams").get(
+            "sport", equals=sport,
+            is_secondary_index=True
+        )
+        uni_in_table = sport_teams.filter("team_university", team_university).filter("university", player_university)
+
+        if not uni_in_table:
             try:
-                sport_count_table.update_item(
-                    Key={
-                        "sport_name": sport
-                    },
-                    UpdateExpression="set team_count= team_count + :v",
-                    ExpressionAttributeValues={
-                        ":v": Decimal(1)
-                    },
-                    ReturnValues="UPDATED_NEW"
+                captain_name = arguments["captain_name"]
+                captain_contact = arguments["captain_contact"]
+                team_id = str(uuid.uuid4())
+            except Exception as e:
+                return cors({
+                    "statusCode": 400,
+                    "body": json.dumps({
+                        "message": "There was an issue getting required parameters (captain details).",
+                        "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
+                    })
+                })
+
+            try:  # add team to SamaggiGamesTeams table
+                db.table("SamaggiGamesTeams").write(
+                    {
+                        "team_uuid": team_id,
+                        "sport": sport,
+                        "team_university": team_university,
+                        "captain": captain_name,
+                        "contact": captain_contact,
+                        "university": player_university
+                    }
                 )
             except Exception as e:
                 return cors({
                     "statusCode": 500,
                     "body": json.dumps({
-                        "message": "Unable to increment team count.",
+                        "message": f"Unable to save team {team_university} to team table.",
                         "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
                     })
                 })
-            else:
-                details["didUpdateTeamCount"] = True
 
-    try:
-        player_table.put_item(
-            Item={
-                "player_uuid": player_uuid,
-                "main_uni": main_university,
-                "player_name": name,
-                "player_uni": university,
-                "sport": sport
-            }
-        )
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to save player to player table.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+        try:  # add player to SamaggiGamesPlayers table
+            db.table("SamaggiGamesPlayers").write(
+                {
+                    "player_uuid": player_uuid,
+                    "sport": sport,
+                    "team_university": team_university,
+                    "name": name,
+                    "nickname": nickname,
+                    "player_university": player_university
+                }
+            )
+        except Exception as e:
+            return cors({
+                "statusCode": 500,
+                "body": json.dumps({
+                    "message": f"Unable to save player {name} to player table.",
+                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                })
             })
-        })
 
     return cors({
         "statusCode": 200,
@@ -352,255 +518,125 @@ def add_player(event, _):
 
 
 def delete_player(event, _):
-    try:
-        player_id: str = event["queryStringParameters"]["player_uuid"]
+    details = {}
 
-        if len(player_id) != 36:
-            raise ValueError("Invalid player_id length. Expects 36, got " + str(len(player_id)))
-        elif not all(player_id[i] == "-" for i in [8, 13, 18, 23]):
-            raise ValueError("Invalid player_id. Player ID must be UUID string.")
-    except KeyError as e:
-        return cors({
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": "There was an issue getting the player_id for this request.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
-    except ValueError as e:
-        return cors({
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": "Player_id type invalid or data incomplete.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an unexpected error while reading player_id for request.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    arguments = Arguments(event)
+    player_id: str = arguments["player_uuid"]
 
-    try:
-        dynamodb = boto3.resource("dynamodb")
-        player_table = dynamodb.Table("SamaggiGamesPlayers")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an error initialising dynamoDB resource in Boto3.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    deleting_player = db.table("SamaggiGamesPlayers").get(
+        "player_uuid", equals=player_id
+    )
 
-    try:
-        response: Dict[str, Any] = player_table.get_item(Key={"player_uuid": player_id})
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-
-            "body": json.dumps({
-                "message": "Unable to create reference to data.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
-
-    # Check if the player exists (the response will not contain key "Item" if the item doesn't exist)
-    if "Item" not in response:
+    if not deleting_player.exists():  # if player do not exist
         return cors({
             "statusCode": 404,
             "body": json.dumps({
-                "message": "The player with that player ID was not found.",
-                "error": "Player not found. (Item not in response)",
-                "data": response
+                "message": "Cannot find player in the player table.",
+                "error": True
             })
         })
-    else:
-        # Extract the data from the item.
-        try:
-            data: Dict[str, Any] = response["Item"]
 
-            # player_name = data["player_name"]  # Unused
-            # main_uni = data["main_uni"]  # Unused
-            player_uni = data["player_uni"]
-            sport = data["sport"]
-        except KeyError as e:
+    team_university = deleting_player["team_university"]
+    player_university = deleting_player["player_university"]
+    sport = deleting_player["sport"]
+
+    sport_players = db.table("SamaggiGamesPlayers").get(
+        "sport", equals=sport,
+        is_secondary_index=True
+    )
+
+    sport_players_same_team = sport_players.filter("team_university", team_university)
+    sport_players_same_uni = sport_players.filter("player_university", player_university)
+
+    if team_university == player_university:
+        if sport_players_same_uni.length() == 1 and sport_players_same_uni.length() != sport_players_same_team.length():
             return cors({
-                "statusCode": 500,
+                "statusCode": 200,
                 "body": json.dumps({
-                    "message": "Player table data invalid or malformed. Some field(s) missing.",
-                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
-                    "data": {"player_id": player_id}
-                })
-            })
-        except Exception as e:
-            return cors({
-                "statusCode": 500,
-                "body": json.dumps({
-                    "message": "There was an error extracting data about the player.",
-                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
+                    "message": "Team must not be left with external players and no internal players.",
+                    "error": True
                 })
             })
 
-    # Delete the item
-    try:
-        player_table.delete_item(Key={'player_uuid': player_id})
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was a problem while deleting item.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
+    db.table("SamaggiGamesPlayers").delete(where="player_uuid", equals=player_id)
+
+    if sport_players_same_uni.length() == 1:
+        details["deleteTeam"] = True
+        team = db.table("SamaggiGamesTeams").get(
+            "sport", equals=sport,
+            is_secondary_index=True
+        ).filter("university", player_university)
+
+        if team.exists():
+            details["deleteTeamExist"] = True
+            team_id = team["team_uuid"]
+            db.table("SamaggiGamesTeams").delete("team_uuid", team_id)
+
+        if team_university == player_university:
+            details["decrementTeamCount"] = True
+            db.table("SamaggiGamesSportCount").decrement(
+                where="sport_name", equals=sport,
+                value_key="team_count", by=1
+            )
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Player successfully deleted.",
+            "detail": details
         })
+    })
 
-    # Find all the items with the same sport and university. (If there's none we will remove the team).
-    try:
-        # Scanning as sport and player_uni is not indexed.
-        similar_player_query: Dict[str, Any] = player_table.scan()
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was a problem while querying item with the same sport and (player) university.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
 
-    try:
-        if "Items" in similar_player_query:
-            similar_player_data: List[Dict[str, Any]] = similar_player_query["Items"]
-            if any(x["player_uni"] == player_uni and x["sport"] == sport for x in similar_player_data):
-                similar_player_exists = True
-            else:
-                similar_player_exists = False
-        else:
-            similar_player_exists = False
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an error parsing similar player data.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+def edit_player(event, _):
+    arguments = Arguments(event)
+    player_id: str = arguments["player_uuid"]
 
-    try:
-        teams_table = dynamodb.Table("SamaggiGamesTeams")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an error initialising the teams table.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    player_in_table = db.table("SamaggiGamesPlayers").there_exists(  # find player in SamaggiGamesPlayers table
+        player_id, at_column="player_uuid"
+    )
 
-    # Check if there's another player with the same university and sport
-    if not similar_player_exists:
-        try:
-            # Scan the table and find the university team uuid we will be deleting.
-            university_sport_query = teams_table.query(IndexName="sport", KeyConditionExpression=Key('sport').eq(sport))
-        except Exception as e:
-            return cors({
-                "statusCode": 500,
-                "body": json.dumps({
-                    "message": "There was an error while querying for sport in the teams table.",
-                    "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-                })
-            })
-
-        teams_uuid = None
-        subtract_team_num = False
-
-        if "Items" in university_sport_query and len(university_sport_query["Items"]) > 0:
-            sport_items: List[Dict[str, Any]] = university_sport_query["Items"]
-            for item in sport_items:
-                if item["uni"] == player_uni:
-                    if teams_uuid is None:
-                        teams_uuid = item["team_uuid"]
-                        if item["uni"] == item["main_uni"]:
-                            subtract_team_num = True
-                    else:
-                        return cors({
-                            "statusCode": 500,
-                            "body": json.dumps({
-                                "message": "There's more than one matching team.",
-                                "error": "There's more than one team for the same sport and university. This conflict "
-                                         "must be resolved manually before continuing."
-                            })
-                        })
-        else:
-            return cors({
-                "statusCode": 404,
-                "body": json.dumps({
-                    "message": "Unable to find the team item to delete.",
-                    "error": "Query for sport returned 0 item.",
-                    "data": {"sport": sport}
-                })
-            })
-    else:
+    if not player_in_table:  # if player do not exist
         return cors({
             "statusCode": 200,
             "body": json.dumps({
-                "message": "Player successfully deleted.",
-                "detail": "No team was deleted as another player with the same sport and university exists."
+                "message": "Cannot find player in the player table."
             })
         })
 
-    # Delete the team
+    db.table("SamaggiGamesPlayers").delete("player_uuid", player_id)  # delete
+
+    # get the new players' details
     try:
-        teams_table.delete_item(Key={"team_uuid": teams_uuid})
+        team_university = arguments["team_university"]
+        sport = arguments["sport"]
+        name = arguments["name"]
+        player_university = arguments["player_university"]
+        player_uuid = str(uuid.uuid4())
     except Exception as e:
         return cors({
-            "statusCode": 500,
+            "statusCode": 400,
             "body": json.dumps({
-                "message": "Unable to delete team.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args)),
-                "data": {"team_uuid": teams_uuid, "sport": sport, "uni": player_uni}
-            })
-        })
-
-    if not subtract_team_num:
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Player successfully deleted.",
-                "detail": "There was no other player from the same university playing the same sport. The team has "
-                          "therefore been deleted. Team number not reduced."
-            })
-        })
-
-    try:
-        sport_count_table = dynamodb.Table("SamaggiGamesSportCount")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to create reference to SamaggiGamesSportCount.",
+                "message": "Function call requires team_university, sport, playerFirstName, playerLastName and player_university",
                 "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
 
-    try:
-        sport_count_table.update_item(
-            Key={
-                "sport_name": sport
-            },
-            UpdateExpression="set team_count= team_count - :v",
-            ExpressionAttributeValues={
-                ":v": Decimal(1)
-            },
-            ReturnValues="UPDATED_NEW"
+    try:  # add player to SamaggiGamesPlayers table
+        db.table("SamaggiGamesPlayers").write(
+            {
+                "player_uuid": player_uuid,
+                "sport": sport,
+                "team_university": team_university,
+                "name": name,
+                "player_university": player_university
+            }
         )
     except Exception as e:
         return cors({
             "statusCode": 500,
             "body": json.dumps({
-                "message": "Unable to update sport count.",
+                "message": f"Unable to save player {name} to player table.",
                 "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
@@ -608,16 +644,36 @@ def delete_player(event, _):
     return cors({
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Player successfully deleted.",
-            "detail": "There was no other player from the same university playing the same sport. The team has "
-                      "therefore been deleted. Team number reduced."
+            "message": "Success"
+        })
+    })
+
+
+def get_table_v2(event, _):
+    arguments = Arguments(event)
+
+    table_name = arguments["tableName"]
+    filters = arguments["filters"]
+
+    scan_result = db.table(table_name).scan()
+
+    res = scan_result
+    for f in filters:
+        res = res.filter(f["key"], f["value"])
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Table Retrieved.",
+            "tableData": res.all()
         })
     })
 
 
 def get_table(event, _):
     try:
-        table_name = event["queryStringParameters"]["table_name"]
+        arguments = Arguments(event)
+        table_name = arguments["table_name"]
     except KeyError as e:
         return cors({
             "statusCode": 400,
