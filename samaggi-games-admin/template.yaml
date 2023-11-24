@@ -8,7 +8,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 29
     Runtime: python3.9
     Architectures:
       - arm64
@@ -113,6 +113,21 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: "*"
 
+  SaveAddress:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.save_address
+      Events:
+        SaveAddress:
+          Type: Api
+          Properties:
+            Path: /save-address
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
   DeletePlayer:
     Type: AWS::Serverless::Function
     Properties:
@@ -183,6 +198,36 @@ Resources:
           Type: Api
           Properties:
             Path: /check-code
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  WriteSpectator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.write_spectator
+      Events:
+        WriteSpectatorAPI:
+          Type: Api
+          Properties:
+            Path: /write-spectator
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  GetPaymentCode:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.get_payment_code
+      Events:
+        WriteSpectatorAPI:
+          Type: Api
+          Properties:
+            Path: /get-payment-code
             Method: post
       Policies:
         - DynamoDBCrudPolicy:
