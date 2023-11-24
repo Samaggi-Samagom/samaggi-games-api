@@ -6,9 +6,9 @@ from decimal import Decimal
 from typing import Dict, Any, List
 import boto3
 from DynamoDBInterface import DynamoDB
-from support import Arguments, university_names, university_names_simplified
+from support import Arguments, university_names, university_names_simplified, university_city, simplify_university
 
-db = DynamoDB.Database()
+db: DynamoDB.Database = DynamoDB.Database()
 
 
 # Adapted from Elias Zamaria's answer on Stack Overflow, dated: 7th Oct 2010, accessed 21st Dec 2021.
@@ -98,12 +98,62 @@ def check_code(event, __):
     arguments = Arguments(event)
     code = arguments["code"].lower().replace(" ", "")
 
+    address_data = db.table("SamaggiGamesAddress").get(code)
+
+    address_name = ""
+    address1 = ""
+    address2 = ""
+    city = ""
+    postcode = ""
+
+    if address_data.exists():
+        address_name = address_data["addr-name"]
+        address1 = address_data["addr1"]
+        address2 = address_data["addr2"]
+        city = address_data["city"]
+        postcode = address_data["postcode"]
+
+    if code in university_names_simplified:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Signed In",
+                "valid": True,
+                "name": university_names[university_names_simplified.index(code)],
+                "addr-name": address_name,
+                "addr1": address1,
+                "addr2": address2,
+                "city": city,
+                "postcode": postcode
+            })
+        })
+    else:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "University not found. Check your code and try again.",
+                "valid": False,
+                "name": ""
+            })
+        })
+
+
+def save_address(event, _):
+    arguments = Arguments(event)
+
+    db.table("SamaggiGamesAddress").write({
+        "code": arguments["code"],
+        "addr-name": arguments["addrName"],
+        "addr1": arguments["addr1"],
+        "addr2": arguments["addr2"],
+        "city": arguments["city"],
+        "postcode": arguments["postcode"]
+    })
+
     return cors({
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Checked.",
-            "valid": code in university_names_simplified,
-            "name": university_names[university_names_simplified.index(code)] if code in university_names_simplified else ""
+            "message": "Saved Successfully"
         })
     })
 
@@ -266,19 +316,39 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
     player_uni = arguments["player_university"]
     sport = arguments["sport"]
 
-    team_player = db.table("SamaggiGamesPlayers").get(
+    team_sport_players = db.table("SamaggiGamesPlayers").get(
         "team_university", equals=team_uni,
         is_secondary_index=True
     ).filter("sport", sport)
 
-    if len(team_player) == 0 and player_uni != team_uni:
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": f"First player must be from the university they're playing for.",
-                "valid": False
+    from DynamoDBInterface.DynamoDB import FilterType
+
+    if sport == "Football":
+        team_support_players = team_sport_players.filter("player_city", university_city(simplify_university(team_uni)),
+                                                         filter_type=FilterType.NOT_EQUAL)
+        if university_city(simplify_university(player_uni)) != university_city(simplify_university(team_uni)) and\
+                (len(team_support_players) + 1)/(len(team_sport_players) + 1) > 0.5 and player_uni != team_uni:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"At least 50% of the player in the team must be from the city of the Thai Society "
+                               f"forming the team.",
+                    "valid": False
+                })
             })
-        })
+    else:
+        team_support_players = team_sport_players.filter("player_university",
+                                                         team_uni,
+                                                         filter_type=FilterType.NOT_EQUAL)
+        if (len(team_support_players) + 1)/(len(team_sport_players) + 1) > 0.5 and player_uni != team_uni:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"At least 50% of the player in the team must be from the Thai Society forming the "
+                               f"team.",
+                    "valid": False
+                })
+            })
 
     similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
         "player_university", equals=player_uni,
@@ -299,7 +369,7 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
             return cors({
                 "statusCode": 200,
                 "body": json.dumps({
-                    "message": f"{player_uni} already playing for another team {sport}.",
+                    "message": f"{player_uni} already playing for another team for {sport}.",
                     "valid": False
                 })
             })
@@ -310,18 +380,45 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
         is_secondary_index=True
     )
     filtered_players = player_data.filter("sport", sport)  # all players that play this sport for this uni
-    [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
-     filtered_players[j]["player_university"] not in allied_unis]
+    city_unis = []
 
-    if player_uni not in allied_unis and ((len(allied_unis) == 3 and sport != "Football") or
-                                          (len(allied_unis) == 5 and sport == "Football")):
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": f"{team_uni} {sport} team already has three universities.",
-                "valid": False
+    if sport == "Football":
+        [allied_unis.append(
+            f"{filtered_players[j]['player_university']} "
+            f"({university_city(simplify_university(filtered_players[j]['player_university']))})")
+            for j in range(len(filtered_players))
+            if filtered_players[j]["player_university"] not in allied_unis
+            and filtered_players[j]["player_city"] != university_city(simplify_university(team_uni))]
+        [city_unis.append(filtered_players[k]['player_university']) for k in range(len(filtered_players))
+            if filtered_players[k]["player_university"] not in city_unis and
+            university_city(simplify_university(filtered_players[k]["player_university"])) ==
+         university_city(simplify_university(team_uni))]
+    else:
+        [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
+         filtered_players[j]["player_university"] not in allied_unis]
+
+    if sport == "Football":
+        if f"{player_uni} ({university_city(simplify_university(player_uni))})" not in allied_unis and \
+                len(allied_unis) == 3:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"The city of {university_city(simplify_university(team_uni))} ({', '.join(city_unis)}) "
+                               f"{sport} team already has three supporting universities not from the city: "
+                               f"{', '.join(allied_unis)}",
+                    "valid": False
+                })
             })
-        })
+    else:
+        if player_uni not in allied_unis and len(allied_unis) == 3:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"{team_uni} {sport} team already has three supporting universities: "
+                               f"{', '.join(allied_unis)}",
+                    "valid": False
+                })
+            })
 
     return cors({
         "statusCode": 200,
@@ -370,8 +467,16 @@ def add_player(event, _):
                 })
             })
 
-        team_count = int(count_data[0]["team_count"])
-        max_team = int(count_data[0]["max_teams"])
+        team_count = int(count_data["team_count"])
+        max_team = int(count_data["max_teams"])
+
+        if len(team_data) >= count_data["max_size"]:
+            return cors({
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": f"This team already has the maximum number of players"
+                })
+            })
 
         if team_count >= max_team:  # check if team slot for the sport is full
             return cors({
@@ -420,14 +525,14 @@ def add_player(event, _):
         details["willUpdateTeamCount"] = True  # increment team count
         try:
             db.table("SamaggiGamesSportCount").increment(
-                where="sport_name", equals=sport,
+                "sport_name", equals=sport,
                 value_key="team_count", by=1
             )
         except Exception as e:
             return cors({
                 "statusCode": 500,
                 "body": json.dumps({
-                    "message": f"Unable to increment team_count for {sport}.",
+                    "message": f"Unable to increment team_count for {sport}. Error: {e.args}",
                 })
             })
         else:
@@ -496,7 +601,9 @@ def add_player(event, _):
                     "team_university": team_university,
                     "name": name,
                     "nickname": nickname,
-                    "player_university": player_university
+                    "player_university": player_university,
+                    "image": arguments["image"],
+                    "player_city": university_city(simplify_university(player_university))
                 }
             )
         except Exception as e:
@@ -549,16 +656,17 @@ def delete_player(event, _):
     sport_players_same_uni = sport_players.filter("player_university", player_university)
 
     if team_university == player_university:
-        if sport_players_same_uni.length() == 1 and sport_players_same_uni.length() != sport_players_same_team.length():
+        if len(sport_players_same_team) != 1 and \
+                (len(sport_players_same_uni) - 1)/(len(sport_players_same_team) - 1) < 0.5:
             return cors({
                 "statusCode": 200,
                 "body": json.dumps({
-                    "message": "Team must not be left with external players and no internal players.",
+                    "message": "At least 50% of the player in the team must be from the Thai Society forming the team.",
                     "error": True
                 })
             })
 
-    db.table("SamaggiGamesPlayers").delete(where="player_uuid", equals=player_id)
+    db.table("SamaggiGamesPlayers").delete("player_uuid", equals=player_id)
 
     if sport_players_same_uni.length() == 1:
         details["deleteTeam"] = True
@@ -575,7 +683,7 @@ def delete_player(event, _):
         if team_university == player_university:
             details["decrementTeamCount"] = True
             db.table("SamaggiGamesSportCount").decrement(
-                where="sport_name", equals=sport,
+                "sport_name", equals=sport,
                 value_key="team_count", by=1
             )
 
@@ -617,7 +725,8 @@ def edit_player(event, _):
         return cors({
             "statusCode": 400,
             "body": json.dumps({
-                "message": "Function call requires team_university, sport, playerFirstName, playerLastName and player_university",
+                "message": "Function call requires team_university, sport, playerFirstName, playerLastName and "
+                           "player_university",
                 "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
             })
         })
@@ -738,5 +847,110 @@ def get_table(event, _):
             "body": json.dumps({
                 "message": "Success",
                 "data": response["Items"]
+            }, cls=DecimalEncoder)
+        })
+
+
+def write_spectator(event, __):
+    arguments = Arguments(event)
+    arguments.require(["formData", "paymentVerification", "amount"])
+
+    if not arguments.available():
+        return arguments.error
+    if not arguments.contains_requirements():
+        return cors({
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Missing Arguments",
+                "data": {
+                    "expects": arguments.requirements(),
+                    "got": arguments.keys()
+                }
+            }, cls=DecimalEncoder)
+        })
+
+    spectators = db.table("SamaggiGamesSpectator").scan()
+    payments = db.table("SamaggiGamesPayment").scan()
+
+    spector_payments = spectators.join(payments, "payment-id")
+
+    used_payments = spector_payments.unique("payment-verification")
+
+    if arguments.get("paymentVerification") in used_payments:
+        return cors({
+            "statusCode": 400,
+            "body": json.dumps({
+                "message": "Payment Verification Already Used",
+                "data": {}
+            }, cls=DecimalEncoder)
+        })
+
+    payment_data = payments.get_where("payment-verification", arguments.get("paymentVerification"))
+
+    db.table("SamaggiGamesPayment").update(
+        payment_data["payment-id"],
+        data_to_update={
+            "amount": arguments.get("amount")
+        }
+    )
+
+    if payment_data == {}:
+        return cors({
+            "statusCode": 404,
+            "body": json.dumps({
+                "message": "Payment Code Not Found",
+                "data": {}
+            }, cls=DecimalEncoder)
+        })
+
+    data = arguments.get("formData")
+    data.update({
+        "spectator-id": str(uuid.uuid4()),
+        "payment-id": payment_data["payment-id"]
+    })
+
+    db.table("SamaggiGamesSpectator").write(data)
+
+    # return cors({
+    #         "statusCode": 200,
+    #         "body": json.dumps({
+    #             "message": "Success",
+    #             "data": {
+    #                 "success": True
+    #             }
+    #         }, cls=DecimalEncoder)
+    #     })
+
+    return cors({
+        "statusCode": 400,
+        "body": json.dumps({
+            "message": "Form Closed. Please buy your ticket at the event.",
+            "data": {}
+        })
+    })
+
+
+def get_payment_code(_, __):
+    verifications = db.table("SamaggiGamesPayment").scan().unique("payment-verification")
+
+    verification = str(uuid.uuid4())[:8]
+    while verification in verifications:
+        verification = str(uuid.uuid4())[:8]
+
+    db.table("SamaggiGamesPayment").write({
+        "payment-id": str(uuid.uuid4()),
+        "payment-verification": verification,
+        "paid": False,
+        "notified": False,
+        "amount": -1
+    })
+
+    return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Success",
+                "data": {
+                    "verification": verification
+                }
             }, cls=DecimalEncoder)
         })
