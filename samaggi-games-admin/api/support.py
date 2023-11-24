@@ -37,6 +37,7 @@ university_names = [
     "Harper Adams University",
     "Hartpury University and Hartpury College",
     "Heriot-Watt University",
+    "Hult International Business School",
     "Imperial College London",
     "Keele University",
     "King's College London",
