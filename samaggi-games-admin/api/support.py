@@ -1,5 +1,7 @@
 from typing import Dict, Any, List
 import json
+import csv
+import requests
 
 university_names = [
     "Abertay University",
@@ -172,7 +174,54 @@ university_names = [
 ]
 
 
-university_names_simplified = [x.lower().replace(" ", "") for x in university_names]
+def generate_csv():
+    items = []
+
+    for university_name in university_names:
+        res = requests.get(
+            f"https://maps.googleapis.com/maps/api/geocode/json?address={university_name}&key=AIzaSyD7QuIKF0i_p9bYvgueicrSQlb8qJ2ACcU")
+
+        city = "UNKNOWN"
+        if len(res.json()["results"]) != 0:
+            for address_comp in res.json()["results"][0]["address_components"]:
+                if "postal_town" in address_comp["types"]:
+                    city = address_comp["long_name"]
+        else:
+            print(res.json())
+
+        if city == "UNKNOWN":
+            print(university_name)
+            input()
+
+        item = {
+            "University Name": university_name,
+            "Code": simplify_university(university_name),
+            "Associated City": city
+        }
+
+        items.append(item)
+
+    keys = items[0].keys()
+
+    with open('universities.csv', 'w', newline='') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(items)
+
+
+def university_city(university_code: str):
+    with open('universities.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            if university_code.lower() == row[1]:
+                return row[2]
+
+
+def simplify_university(university_name: str) -> str:
+    return university_name.lower().replace(" ", "").replace(",", "").replace("'", "")
+
+
+university_names_simplified = [simplify_university(x) for x in university_names]
 
 
 class Arguments:
