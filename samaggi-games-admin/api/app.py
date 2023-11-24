@@ -5,6 +5,7 @@ import uuid
 from decimal import Decimal
 from typing import Dict, Any, List
 import boto3
+import time
 from DynamoDBInterface import DynamoDB
 from support import Arguments, university_names, university_names_simplified, university_city, simplify_university
 
@@ -97,6 +98,25 @@ def get_sports(_, __):
 def check_code(event, __):
     arguments = Arguments(event)
     code = arguments["code"].lower().replace(" ", "")
+
+    if time.time() < 1700917200:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Registration not yet open.",
+                "valid": False,
+                "name": ""
+            })
+        })
+    elif time.time() > 1701795600:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Registration has closed.",
+                "valid": False,
+                "name": ""
+            })
+        })
 
     address_data = db.table("SamaggiGamesAddress").get(code)
 
