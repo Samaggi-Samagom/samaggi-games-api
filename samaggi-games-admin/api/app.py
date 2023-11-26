@@ -317,7 +317,8 @@ def sport_clash(event, _):
                 "statusCode": 200,
                 "body": json.dumps({
                     "message": "Success",
-                    "clash": True
+                    "clash": True,
+                    "sport": reg_sport
                 })
             })
 
@@ -490,7 +491,7 @@ def add_player(event, _):
         team_count = int(count_data["team_count"])
         max_team = int(count_data["max_teams"])
 
-        if len(team_data) >= count_data["max_size"]:
+        if len(team_data.filter("sport", sport)) >= count_data["max_size"]:
             return cors({
                 "statusCode": 200,
                 "body": json.dumps({
@@ -562,6 +563,7 @@ def add_player(event, _):
         try:  # get each player name and player_university
             name = arguments["players"][i]["name"]
             nickname = arguments["players"][i]["nickname"]
+            shirt_number = arguments["players"][i]["shirt_number"] if "shirt_number" in arguments["players"][i] else "X"
             player_university = arguments["players"][i]["player_university"]
             player_uuid = str(uuid.uuid4())
         except Exception as e:
@@ -623,7 +625,8 @@ def add_player(event, _):
                     "nickname": nickname,
                     "player_university": player_university,
                     "image": arguments["image"],
-                    "player_city": university_city(simplify_university(player_university))
+                    "player_city": university_city(simplify_university(player_university)),
+                    "shirt_number": shirt_number
                 }
             )
         except Exception as e:
