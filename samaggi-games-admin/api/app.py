@@ -422,7 +422,8 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
 
     if sport == "Football":
         if f"{player_uni} ({university_city(simplify_university(player_uni))})" not in allied_unis and \
-                len(allied_unis) == 3:
+                len(allied_unis) == 3 and player_uni != team_uni and \
+                university_city(simplify_university(player_uni)) != university_city(simplify_university(team_uni)):
             return cors({
                 "statusCode": 200,
                 "body": json.dumps({
