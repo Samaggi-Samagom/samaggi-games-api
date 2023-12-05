@@ -416,7 +416,8 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
          university_city(simplify_university(team_uni))]
     else:
         [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
-         filtered_players[j]["player_university"] not in allied_unis]
+         filtered_players[j]["player_university"] not in allied_unis and
+         filtered_players[j]["player_university"] != filtered_players[j]["team_university"]]
 
     if sport == "Football":
         if f"{player_uni} ({university_city(simplify_university(player_uni))})" not in allied_unis and \
