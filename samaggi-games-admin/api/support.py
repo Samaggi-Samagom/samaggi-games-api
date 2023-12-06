@@ -60,6 +60,7 @@ university_names = [
     "Middlesex University",
     "Newcastle University",
     "Newman University, Birmingham",
+    "Northeastern University London",
     "Northern School of Contemporary Dance",
     "Northumbria University",
     "Norwich University of the Arts",
