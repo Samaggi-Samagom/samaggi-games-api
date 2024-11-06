@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "Samaggi-Games-API"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-11cdodudfau59"
+s3_prefix = "Samaggi-Games-API"
+region = "eu-west-2"
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
