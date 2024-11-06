@@ -226,7 +226,7 @@ def simplify_university(university_name: str) -> str:
 university_names_simplified = [simplify_university(x) for x in university_names]
 
 
-class Arguments:
+class DepArguments:
 
     def __init__(self, event: Dict[str, Any]):
         self._required_args = None

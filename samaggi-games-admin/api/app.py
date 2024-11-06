@@ -7,7 +7,11 @@ from typing import Dict, Any, List
 import boto3
 import time
 from DynamoDBInterface import DynamoDB
-from support import Arguments, university_names, university_names_simplified, university_city, simplify_university
+from APIGatewayInterface.Arguments import Arguments
+from APIGatewayInterface import Tests
+from support import DepArguments, university_names, university_names_simplified, university_city, simplify_university
+import urllib
+
 
 db: DynamoDB.Database = DynamoDB.Database()
 
@@ -96,7 +100,7 @@ def get_sports(_, __):
 
 
 def check_code(event, __):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     code = arguments["code"].lower().replace(" ", "")
 
     if time.time() < 1700917200:
@@ -108,11 +112,11 @@ def check_code(event, __):
                 "name": ""
             })
         })
-    elif time.time() > 1701795600:
+    elif time.time() > 1702301697:
         return cors({
             "statusCode": 200,
             "body": json.dumps({
-                "message": "Registration has closed.",
+                "message": "Registration has closed. To make changes please contact the Events team.",
                 "valid": False,
                 "name": ""
             })
@@ -159,7 +163,7 @@ def check_code(event, __):
 
 
 def save_address(event, _):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
 
     db.table("SamaggiGamesAddress").write({
         "code": arguments["code"],
@@ -180,7 +184,7 @@ def save_address(event, _):
 
 def team_exists(event, _):
     try:
-        arguments = Arguments(event)
+        arguments = DepArguments(event)
         team_university = arguments["player_university"]
         sport = arguments["sport"]
     except Exception as e:
@@ -277,7 +281,7 @@ def data_statistics(_, __):
 
 
 def sport_clash(event, _):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     sport = arguments["sport"]
     name = arguments["name"]
     player_university = arguments["player_university"]
@@ -332,7 +336,7 @@ def sport_clash(event, _):
 
 
 def is_player_valid(event, _):  # get player_university, team_university, sport
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     team_uni = arguments["team_university"]
     player_uni = arguments["player_university"]
     sport = arguments["sport"]
@@ -457,7 +461,7 @@ def add_player(event, _):
     details = {}
     # get the players' team_university and sport
     try:
-        arguments = Arguments(event)
+        arguments = DepArguments(event)
         team_university = arguments["team_university"]
         sport = arguments["sport"]
     except Exception as e:
@@ -653,7 +657,7 @@ def add_player(event, _):
 def delete_player(event, _):
     details = {}
 
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     player_id: str = arguments["player_uuid"]
 
     deleting_player = db.table("SamaggiGamesPlayers").get(
@@ -723,7 +727,7 @@ def delete_player(event, _):
 
 
 def edit_player(event, _):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     player_id: str = arguments["player_uuid"]
 
     player_in_table = db.table("SamaggiGamesPlayers").there_exists(  # find player in SamaggiGamesPlayers table
@@ -785,7 +789,7 @@ def edit_player(event, _):
 
 
 def get_table_v2(event, _):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
 
     table_name = arguments["tableName"]
     filters = arguments["filters"]
@@ -806,60 +810,18 @@ def get_table_v2(event, _):
 
 
 def get_table(event, _):
-    try:
-        arguments = Arguments(event)
-        table_name = arguments["table_name"]
-    except KeyError as e:
-        return cors({
-            "statusCode": 400,
-            "body": json.dumps({
-                "message": "Unable to get table_name from request parameters. Parameter not provided.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to get table_name from request parameter due to unexpected error.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    arguments = Arguments(event)
+    arguments.require(["table_name"])
 
-    try:
-        dynamodb = boto3.resource("dynamodb")
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "There was an error initialising dynamoDB resource in Boto3.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    if arguments.should_error():
+        return arguments.error
 
-    try:
-        table_ref = dynamodb.Table(table_name)
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to initialise the table.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    response = db.table(arguments["table_name"]).scan()
 
-    try:
-        response = table_ref.scan()
-    except Exception as e:
-        return cors({
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Unable to scan table.",
-                "error": "Type: {}, Error Args: {}".format(str(type(e)), str(e.args))
-            })
-        })
+    s3 = boto3.client("s3", region_name="eu-west-2", config=boto3.session.Config(signature_version='s3v4',
+                                                                                 s3={'addressing_style': 'path'}))
 
-    if "Items" not in response:
+    if not response.exists():
         return cors({
             "statusCode": 404,
             "body": json.dumps({
@@ -867,18 +829,36 @@ def get_table(event, _):
                 "error": "No data."
             })
         })
-    else:
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Success",
-                "data": response["Items"]
-            }, cls=DecimalEncoder)
-        })
+
+    def get_pre_signed(x):
+        if x == "":
+            return ""
+
+        return s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={
+                "Bucket": "samaggi-games-id",
+                "Key": x
+            },
+            ExpiresIn=21600
+        )
+
+    response = response.apply(get_pre_signed, "image", new_col="image-link")
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success",
+            "data": response.all()
+        }, cls=DecimalEncoder)
+    })
+
+if __name__ == '__main__':
+    Tests.post_to(get_table, {"table_name": "SamaggiGamesPlayers"})
 
 
 def write_spectator(event, __):
-    arguments = Arguments(event)
+    arguments = DepArguments(event)
     arguments.require(["formData", "paymentVerification", "amount"])
 
     if not arguments.available():

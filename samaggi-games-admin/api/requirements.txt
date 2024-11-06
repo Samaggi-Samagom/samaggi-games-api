@@ -1,2 +1,3 @@
 git+https://github.com/Samaggi-Samagom/DynamoDB-Python-Helper@main
+git+https://github.com/Samaggi-Samagom/APIGateway-Python-Helper@main
 requests
