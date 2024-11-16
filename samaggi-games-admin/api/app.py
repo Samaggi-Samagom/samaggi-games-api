@@ -103,24 +103,24 @@ def check_code(event, __):
     arguments = DepArguments(event)
     code = arguments["code"].lower().replace(" ", "")
 
-    if time.time() < 1700917200:
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Registration not yet open.",
-                "valid": False,
-                "name": ""
-            })
-        })
-    elif time.time() > 1702301697:
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Registration has closed. To make changes please contact the Events team.",
-                "valid": False,
-                "name": ""
-            })
-        })
+    # if time.time() < 1700917200:
+    #     return cors({
+    #         "statusCode": 200,
+    #         "body": json.dumps({
+    #             "message": "Registration not yet open.",
+    #             "valid": False,
+    #             "name": ""
+    #         })
+    #     })
+    # elif time.time() > 1702301697:
+    #     return cors({
+    #         "statusCode": 200,
+    #         "body": json.dumps({
+    #             "message": "Registration has closed. To make changes please contact the Events team.",
+    #             "valid": False,
+    #             "name": ""
+    #         })
+    #     })
 
     address_data = db.table("SamaggiGamesAddress").get(code)
 
