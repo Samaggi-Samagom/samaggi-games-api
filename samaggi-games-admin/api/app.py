@@ -88,13 +88,21 @@ def cors(data: Dict[str, Any]):
     }
     return data
 
-
+#excluded athletic from sports type
 def get_sports(_, __):
+    excluded_sports = [
+        "100M Sprint Female", "100M Sprint Male", "200M Sprint Female", "200M Sprint Male",
+        "400M Sprint Female", "400M Sprint Male", "4x100M Relay Female", "4x100M Relay Male",
+        "4x100M Relay Mixed", "4x400M Relay Female", "4x400M Relay Male", "4x400M Relay Mixed"
+    ]
+    sports_list = list(x["sport_name"] for x in db.table("SamaggiGamesSportCount").scan().all())
+    filtered_sports = [sport for sport in sports_list if sport not in excluded_sports]
+
     return cors({
         "statusCode": 200,
         "body": json.dumps({
             "message": "Sports Retrieved.",
-            "sports": list(x["sport_name"] for x in db.table("SamaggiGamesSportCount").scan().all())
+            "sports": filtered_sports
         })
     })
 
@@ -200,21 +208,23 @@ def team_exists(event, _):
         "university", equals=team_university,
         is_secondary_index=True
     )
-
-    if any(team["sport"] == sport for team in team_data.all()):
-        return cors({
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Success",
-                "exist": True
-            })
-        })
+    unique_universities = set(team["university"] for team in team_data.all() if team["sport"] == sport)
+    
+    # check for team can only made up of 3 unis
+    # if len(unique_universities) > 3:
+    #     return cors({
+    #         "statusCode": 200,
+    #         "body": json.dumps({
+    #             "message": f"Team composition limit reached. Only 3 universities are allowed per team.",
+    #             "error": True
+    #         })
+    #     })
 
     return cors({
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Success",
-            "exist": False
+            "message": "Team check successful.",
+            "exist": True
         })
     })
 
@@ -348,32 +358,19 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
 
     from DynamoDBInterface.DynamoDB import FilterType
 
-    if sport == "Football":
-        team_support_players = team_sport_players.filter("player_city", university_city(simplify_university(team_uni)),
-                                                         filter_type=FilterType.NOT_EQUAL)
-        if university_city(simplify_university(player_uni)) != university_city(simplify_university(team_uni)) and\
-                (len(team_support_players) + 1)/(len(team_sport_players) + 1) > 0.5 and player_uni != team_uni:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"At least 50% of the player in the team must be from the city of the Thai Society "
-                               f"forming the team.",
-                    "valid": False
-                })
+  
+    team_support_players = team_sport_players.filter("player_university",
+                                                    team_uni,
+                                                    filter_type=FilterType.NOT_EQUAL)
+    if (len(team_support_players) + 1)/(len(team_sport_players) + 1) > 0.5 and player_uni != team_uni:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"At least 50% of the player in the team must be from the Thai Society forming the "
+                        f"team.",
+                "valid": False
             })
-    else:
-        team_support_players = team_sport_players.filter("player_university",
-                                                         team_uni,
-                                                         filter_type=FilterType.NOT_EQUAL)
-        if (len(team_support_players) + 1)/(len(team_sport_players) + 1) > 0.5 and player_uni != team_uni:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"At least 50% of the player in the team must be from the Thai Society forming the "
-                               f"team.",
-                    "valid": False
-                })
-            })
+        })
 
     similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
         "player_university", equals=player_uni,
@@ -407,46 +404,22 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
     filtered_players = player_data.filter("sport", sport)  # all players that play this sport for this uni
     city_unis = []
 
-    if sport == "Football":
-        [allied_unis.append(
-            f"{filtered_players[j]['player_university']} "
-            f"({university_city(simplify_university(filtered_players[j]['player_university']))})")
-            for j in range(len(filtered_players))
-            if f"{filtered_players[j]['player_university']} "
-            f"({university_city(simplify_university(filtered_players[j]['player_university']))})" not in allied_unis
-            and filtered_players[j]["player_city"] != university_city(simplify_university(team_uni))]
-        [city_unis.append(filtered_players[k]['player_university']) for k in range(len(filtered_players))
-            if filtered_players[k]["player_university"] not in city_unis and
-            university_city(simplify_university(filtered_players[k]["player_university"])) ==
-         university_city(simplify_university(team_uni))]
-    else:
-        [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
-         filtered_players[j]["player_university"] not in allied_unis and
-         filtered_players[j]["player_university"] != filtered_players[j]["team_university"]]
 
-    if sport == "Football":
-        if f"{player_uni} ({university_city(simplify_university(player_uni))})" not in allied_unis and \
-                len(allied_unis) == 3 and player_uni != team_uni and \
-                university_city(simplify_university(player_uni)) != university_city(simplify_university(team_uni)):
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"The city of {university_city(simplify_university(team_uni))} ({', '.join(city_unis)}) "
-                               f"{sport} team already has three supporting universities not from the city: "
-                               f"{', '.join(allied_unis)}",
-                    "valid": False
-                })
+    [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
+        filtered_players[j]["player_university"] not in allied_unis and
+        filtered_players[j]["player_university"] != filtered_players[j]["team_university"]]
+
+    
+    
+    if player_uni not in allied_unis and len(allied_unis) == 2:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{team_uni} {sport} team already has 2 supporting universities: "
+                            f"{', '.join(allied_unis)}",
+                "valid": False
             })
-    else:
-        if player_uni not in allied_unis and len(allied_unis) == 3:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"{team_uni} {sport} team already has three supporting universities: "
-                               f"{', '.join(allied_unis)}",
-                    "valid": False
-                })
-            })
+        })
 
     return cors({
         "statusCode": 200,
@@ -477,6 +450,17 @@ def add_player(event, _):
         "team_university", equals=team_university,
         is_secondary_index=True
     )
+
+    unique_universities = set(team["university"] for team in team_data.all() if team["sport"] == sport)
+
+    # if len(unique_universities) > 3 and player_university not in unique_universities:
+    #     return cors({
+    #         "statusCode": 200,
+    #         "body": json.dumps({
+    #             "message": "Team composition limit exceeded. Each team can only have players from a maximum of 3 universities.",
+    #             "error": True
+    #         })
+    #     })
 
     if not any(team["sport"] == sport for team in team_data.all()):  # if team not already in SamaggiGamesTeams table
         try:
