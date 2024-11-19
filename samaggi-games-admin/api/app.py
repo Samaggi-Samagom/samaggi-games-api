@@ -990,9 +990,6 @@ def get_table(event, _):
         }, cls=DecimalEncoder)
     })
 
-if __name__ == '__main__':
-    Tests.post_to(get_table, {"table_name": "SamaggiGamesPlayers"})
-
 
 def write_spectator(event, __):
     arguments = DepArguments(event)
