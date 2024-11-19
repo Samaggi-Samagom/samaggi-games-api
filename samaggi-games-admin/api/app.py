@@ -11,9 +11,12 @@ from APIGatewayInterface.Arguments import Arguments
 from APIGatewayInterface import Tests
 from support import DepArguments, university_names, university_names_simplified, university_city, simplify_university
 import urllib
+from discordwebhook import Discord
 
 
 db: DynamoDB.Database = DynamoDB.Database()
+
+WEBHOOK_URL = "https://discord.com/api/webhooks/1308091282350018610/1J5OMeZEPEVZpcTSW5HDF8K3eAkwXoPKaW5EX6JOlmK9EUqsiCSdG-sdb_ZE3JXnZB1Y"
 
 
 # Adapted from Elias Zamaria's answer on Stack Overflow, dated: 7th Oct 2010, accessed 21st Dec 2021.
@@ -344,6 +347,84 @@ def sport_clash(event, _):
         })
     })
 
+def send_discord(message):
+    discord = Discord(url=WEBHOOK_URL)
+    discord.post(content=message)
+
+def disqualify_teams(_, __):
+    teams_data = db.table("SamaggiGamesTeams").scan()
+    sports = db.table("SamaggiGamesSportCount").scan()
+
+    teams_sport = {}
+    for team_data in teams_data:
+        if team_data["team_university"] not in teams_sport:
+            teams_sport[team_data["team_university"]] = [team_data["sport"]]
+        else:
+            teams_sport[team_data["team_university"]].append(team_data["sport"])
+
+    players = db.table("SamaggiGamesPlayers").scan()
+
+    messages = [f"**{str(datetime.datetime.now())}**"]
+
+    current_disqualifications = db.table("SamaggiGamesDisqualifications").scan()
+
+    messages.append("")
+
+    for team in teams_sport.keys():
+        for sport in teams_sport[team]:
+            team_players = players.filter("sport", sport).filter("team_university", team)
+            to_disqualify = False
+
+            if len(team_players) < sports.get_where("sport_name", sport)["minimum_size"]:
+                to_disqualify = True
+
+            key = f"{sport}-{team}"
+            if to_disqualify:
+                if not (curr := current_disqualifications.get(key)).exists():
+                    db.table("SamaggiGamesDisqualifications").write({
+                        "key": key,
+                        "time": time.time(),
+                        "active": True,
+                        "disqualified": False
+                    })
+                    messages.append(f"Now tracking **{team}**'s **{sport}** for potential disqualification.")
+                else:
+                    if curr["active"] is False:
+                        db.table("SamaggiGamesDisqualifications").update("key", equals=key, data_to_update={
+                            "time": time.time(),
+                            "active": True
+                        })
+                        messages.append(f"Now re-tracking **{team}**'s **{sport}** for potential disqualification.")
+                    elif curr["active"] is True and curr["disqualified"] is False and time.time() - float(curr["time"]) > 21600:
+                        db.table("SamaggiGamesDisqualifications").update("key", equals=key, data_to_update={
+                            "disqualified": True
+                        })
+                        messages.append(f"**{team}**'s **{sport}** is now disqualified.")
+
+            else:
+                if (curr := current_disqualifications.get(key)).exists():
+                    if curr["active"] is True and curr["disqualified"] is False and time.time() - float(curr["time"]) > 21600:
+                        db.table("SamaggiGamesDisqualifications").update("key", equals=key, data_to_update={
+                            "active": False
+                        })
+                        messages.append(f"**{team}**'s **{sport}** is no longer tracked for disqualification.")
+
+    if len(messages) == 2:
+        messages.append("No Update to Display")
+
+    messages.append("\n**Disqualified Teams**:")
+    disqualified_teams = current_disqualifications.filter("disqualified", True)
+
+    if not disqualified_teams.exists():
+        messages.append("No team has been disqualified yet.")
+    else:
+        for dis_team in disqualified_teams.all():
+            messages.append(dis_team["key"])
+
+    send_discord("\n".join(messages))
+
+if __name__ == '__main__':
+    disqualify_teams("", "")
 
 def is_player_valid(event, _):  # get player_university, team_university, sport
     arguments = DepArguments(event)
@@ -358,7 +439,7 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
 
     from DynamoDBInterface.DynamoDB import FilterType
 
-  
+
     team_support_players = team_sport_players.filter("player_university",
                                                     team_uni,
                                                     filter_type=FilterType.NOT_EQUAL)
