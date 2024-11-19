@@ -917,6 +917,34 @@ def get_table_v2(event, _):
         })
     })
 
+def edit_contact(event, _):
+    args = Arguments(event)
+    args.require(["team_id", "name", "contact"])
+
+    if args.should_error():
+        return args.error
+
+    if not db.table("SamaggiGamesTeams").there_exists(args["team_id"]):
+        return cors({
+            "statusCode": 404,
+            "body": json.dumps({
+                "message": f"Team {args['team_id']} does not exist.",
+                "error": ""
+            })
+        })
+
+    db.table("SamaggiGamesTeams").update(args["team_id"], data_to_update={
+        "captain": args["name"],
+        "contact": args["contact"]
+    })
+
+    return cors({
+        "statusCode": 200,
+        "body": json.dumps({
+            "message": "Success"
+        })
+    })
+
 
 def get_table(event, _):
     arguments = Arguments(event)
