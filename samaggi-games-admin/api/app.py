@@ -718,7 +718,8 @@ def add_player(event, _):
                         "team_university": team_university,
                         "captain": captain_name,
                         "contact": captain_contact,
-                        "university": player_university
+                        "university": player_university,
+                        "time": time.time()
                     }
                 )
             except Exception as e:
