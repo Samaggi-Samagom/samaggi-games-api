@@ -452,51 +452,95 @@ def is_player_valid(event, _):  # get player_university, team_university, sport
             })
         })
 
-    similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
-        "player_university", equals=player_uni,
-        is_secondary_index=True
-    ).filter("sport", sport)
-
-    similar_players_uni = list(similar_players.unique("team_university"))
-    if len(similar_players_uni) > 0 and similar_players_uni[0] != team_uni:
-        if similar_players_uni == player_uni:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"{player_uni} already has a team for {sport}.",
-                    "valid": False
-                })
-            })
-        else:
-            return cors({
-                "statusCode": 200,
-                "body": json.dumps({
-                    "message": f"{player_uni} already playing for another team for {sport}.",
-                    "valid": False
-                })
-            })
-
     allied_unis = []
     player_data = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
         "team_university", equals=team_uni,
         is_secondary_index=True
     )
     filtered_players = player_data.filter("sport", sport)  # all players that play this sport for this uni
-    city_unis = []
 
+    uni_player_count = {}
 
-    [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
-        filtered_players[j]["player_university"] not in allied_unis and
-        filtered_players[j]["player_university"] != filtered_players[j]["team_university"]]
+    for player in filtered_players.all():
+        if player['player_university'] in uni_player_count:
+            uni_player_count[player['player_university']] += 1
+        else:
+            uni_player_count[player['player_university']] = 1
 
-    
-    
-    if player_uni not in allied_unis and len(allied_unis) == 2:
+    if player_uni not in uni_player_count.keys():
+        uni_player_count[player_uni] = 1
+    else:
+        uni_player_count[player_uni] += 1
+
+    for university in uni_player_count.keys():
+        if university not in allied_unis and uni_player_count[university] > 1:
+            allied_unis.append(university)
+
+    similar_players = db.table("SamaggiGamesPlayers").get(  # all players that play for this uni
+        "player_university", equals=player_uni,
+        is_secondary_index=True
+    ).filter("sport", sport)
+
+    similar_players_uni = similar_players.count_occurrence("team_university")
+
+    if player_uni in similar_players_uni.keys() and player_uni != team_uni:
         return cors({
             "statusCode": 200,
             "body": json.dumps({
-                "message": f"{team_uni} {sport} team already has 2 supporting universities: "
-                            f"{', '.join(allied_unis)}",
+                "message": f"{player_uni} already has a team for {sport}.",
+                "valid": False
+            })
+        })
+
+    coed_uni = [key for key, value in similar_players_uni.items() if value > 1 and key != player_uni]
+
+    if len(coed_uni) > 0 and team_uni not in coed_uni:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{player_uni} already playing for {coed_uni[0]} for {sport}.",
+                "valid": False
+            })
+        })
+
+    # if len(similar_players_uni.keys()) > 0 and similar_players_uni[0] != team_uni:
+    #     if similar_players_uni == player_uni:
+    #         return cors({
+    #             "statusCode": 200,
+    #             "body": json.dumps({
+    #                 "message": f"{player_uni} already has a team for {sport}.",
+    #                 "valid": False
+    #             })
+    #         })
+    #     else:
+    #         if player_uni in uni_player_count and uni_player_count[player_uni] > 0:
+    #             return cors({
+    #                 "statusCode": 200,
+    #                 "body": json.dumps({
+    #                     "message": f"{player_uni} already playing for another team for {sport}.",
+    #                     "valid": False
+    #                 })
+    #             })
+
+    # [allied_unis.append(filtered_players[j]["player_university"]) for j in range(len(filtered_players)) if
+    #     filtered_players[j]["player_university"] not in allied_unis and
+    #     filtered_players[j]["player_university"] != filtered_players[j]["team_university"]]
+
+    if len(uni_player_count.keys()) > 5:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{team_uni} {sport} team cannot have more than 5 total universities (including "
+                           f"universities sending individual players).",
+                "valid": False
+            })
+        })
+
+    if len(allied_unis) > 3:
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": f"{team_uni} {sport} team already has 2 supporting universities with more than one player.",
                 "valid": False
             })
         })
