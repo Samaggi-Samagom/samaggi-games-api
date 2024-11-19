@@ -589,7 +589,7 @@ def add_player(event, _):
     if not any(team["sport"] == sport for team in team_data.all()):  # if team not already in SamaggiGamesTeams table
         try:
             count_data = db.table("SamaggiGamesSportCount").get(
-                "sport_name", equals=sport
+                "sport_name", equals=sport, is_secondary_index=False, consistent_read=True
             )
         except Exception as e:
             return cors({
