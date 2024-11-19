@@ -205,6 +205,21 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: "*"
 
+  EditContact:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.edit_contact
+      Events:
+        EditContactAPI:
+          Type: Api
+          Properties:
+            Path: /edit-contact
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
   WriteSpectator:
     Type: AWS::Serverless::Function
     Properties:
@@ -216,6 +231,15 @@ Resources:
           Properties:
             Path: /write-spectator
             Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+
+  DisqualifyTeams:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.disqualify_teams
       Policies:
         - DynamoDBCrudPolicy:
             TableName: "*"
