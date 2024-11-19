@@ -211,23 +211,22 @@ def team_exists(event, _):
         "university", equals=team_university,
         is_secondary_index=True
     )
-    unique_universities = set(team["university"] for team in team_data.all() if team["sport"] == sport)
-    
-    # check for team can only made up of 3 unis
-    # if len(unique_universities) > 3:
-    #     return cors({
-    #         "statusCode": 200,
-    #         "body": json.dumps({
-    #             "message": f"Team composition limit reached. Only 3 universities are allowed per team.",
-    #             "error": True
-    #         })
-    #     })
+    # unique_universities = set(team["university"] for team in team_data.all() if team["sport"] == sport)
+
+    if any(team["sport"] == sport for team in team_data.all()):
+        return cors({
+            "statusCode": 200,
+            "body": json.dumps({
+                "message": "Success",
+                "exist": True
+            })
+        })
 
     return cors({
         "statusCode": 200,
         "body": json.dumps({
-            "message": "Team check successful.",
-            "exist": True
+            "message": "Success",
+            "exist": False
         })
     })
 
